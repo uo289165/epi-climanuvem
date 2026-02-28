@@ -43,7 +43,7 @@ api_tests:
     - branches
     - main
     - tags
-static_analysis:
+static_analysis_backend:
   stage: test
   image: denoland/deno:alpine
   needs:
@@ -54,11 +54,26 @@ static_analysis:
     - cd backend
     #- deno fmt --check
     - deno lint
-    - cd .. 
-    - cd frontend
+  only:
+    - branches
+    - main
+    - tags
+
+static_analysis_frontend:
+  stage: test
+  image: node:20-alpine
+  needs:
+    - api_tests
+    - unit_tests
+  script:
     - echo "Running static analysis frontend..."
-    #- deno fmt --check
-    - deno lint
+    - cd frontend
+    - npm ci
+    - npm run lint
+  cache:
+    key: "frontend-npm-cache"
+    paths:
+      - frontend/.npm/
   only:
     - branches
     - main
@@ -68,7 +83,7 @@ build_backend:
   stage: build
   image: docker:27
   needs:
-    - static_analysis
+    - static_analysis_backend
   services:
     - docker:dind
   script:
@@ -86,7 +101,7 @@ build_frontend:
   stage: build
   image: docker:27
   needs:
-    - static_analysis
+    - static_analysis_frontend
   services:
     - docker:dind
   script:
