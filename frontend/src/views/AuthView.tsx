@@ -1,21 +1,22 @@
-import React, { useRef } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import React from 'react';
+import { View, TextInput, TouchableOpacity, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 interface AuthViewProps {
   readonly controller: {
-    readonly user: string;
-    readonly setUser: (val: string) => void;
+    readonly email: string;
+    readonly setEmail: (val: string) => void;
     readonly password: string;
     readonly setPassword: (val: string) => void;
+    readonly loading: boolean;
     readonly handleLogin: () => void;
+    readonly passwordInputRef: React.RefObject<TextInput | null>;
   };
 }
 
 export function AuthView({ controller }: AuthViewProps) {
-  const { user, setUser, password, setPassword, handleLogin } = controller;
-  const passwordInputRef = useRef<TextInput>(null);
+  const { email, setEmail, password, setPassword, loading, handleLogin, passwordInputRef } = controller;
 
   return (
     <ThemedView style={styles.container}>
@@ -24,18 +25,19 @@ export function AuthView({ controller }: AuthViewProps) {
         
         <TextInput
           style={styles.input}
-          placeholder="Usuario"
+          placeholder="Correo electrónico"
           placeholderTextColor="#888"
-          value={user}
-          onChangeText={setUser}
+          value={email}
+          onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          textContentType="username"
-          autoComplete="username"
+          textContentType="emailAddress"
+          autoComplete="email"
           importantForAutofill="yes"
           returnKeyType="next"
           onSubmitEditing={() => passwordInputRef.current?.focus()}
           submitBehavior="submit"
+          editable={!loading}
         />
         
         <TextInput
@@ -50,10 +52,21 @@ export function AuthView({ controller }: AuthViewProps) {
           autoComplete="password"
           importantForAutofill="yes"
           returnKeyType="done"
+          onSubmitEditing={handleLogin}
+          submitBehavior="submit"
+          editable={!loading}
         />
         
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login</Text>
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
         </TouchableOpacity>
       </View>
     </ThemedView>
@@ -89,6 +102,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: 'white',

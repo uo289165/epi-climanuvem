@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
+import { AuthService } from '@/src/services/AuthService';
 
 export const useHome = () => {
-    
-  const handleLogout = () => {
-    // Navigate back to the login screen and clear history
+
+  const handleLogout = async () => {
+    await AuthService.logout();
     router.replace('/');
   };
 
   return {
-    handleLogout
+    handleLogout,
   };
 };
