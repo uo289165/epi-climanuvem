@@ -4,43 +4,73 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-interface AuthViewProps {
+interface RegisterViewProps {
   readonly controller: {
+    readonly username: string;
+    readonly setUsername: (val: string) => void;
     readonly email: string;
     readonly setEmail: (val: string) => void;
     readonly password: string;
     readonly setPassword: (val: string) => void;
+    readonly confirmPassword: string;
+    readonly setConfirmPassword: (val: string) => void;
     readonly showPassword: boolean;
     readonly togglePasswordVisibility: () => void;
+    readonly showConfirmPassword: boolean;
+    readonly toggleConfirmPasswordVisibility: () => void;
     readonly loading: boolean;
-    readonly handleLogin: () => void;
-    readonly handleNavigateToRegister: () => void;
-    readonly handleResetPassword: () => void;
+    readonly handleRegister: () => void;
+    readonly handleNavigateToLogin: () => void;
+    readonly emailInputRef: React.RefObject<TextInput | null>;
     readonly passwordInputRef: React.RefObject<TextInput | null>;
+    readonly confirmPasswordInputRef: React.RefObject<TextInput | null>;
   };
 }
 
-export function AuthView({ controller }: AuthViewProps) {
+export function RegisterView({ controller }: RegisterViewProps) {
   const { 
+    username, 
+    setUsername, 
     email, 
     setEmail, 
     password, 
     setPassword, 
+    confirmPassword, 
+    setConfirmPassword, 
     showPassword,
     togglePasswordVisibility,
+    showConfirmPassword,
+    toggleConfirmPasswordVisibility,
     loading, 
-    handleLogin, 
-    handleNavigateToRegister,
-    handleResetPassword,
-    passwordInputRef 
+    handleRegister, 
+    handleNavigateToLogin,
+    emailInputRef,
+    passwordInputRef,
+    confirmPasswordInputRef
   } = controller;
 
   return (
     <ThemedView style={styles.container}>
       <View style={styles.formContainer}>
-        <ThemedText type="title" style={styles.title}>Iniciar Sesión</ThemedText>
+        <ThemedText type="title" style={styles.title}>Crear Cuenta</ThemedText>
         
         <TextInput
+          style={styles.input}
+          placeholder="Nombre de usuario"
+          placeholderTextColor="#888"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="next"
+          onSubmitEditing={() => emailInputRef.current?.focus()}
+          submitBehavior="submit"
+          editable={!loading}
+          maxLength={20}
+        />
+
+        <TextInput
+          ref={emailInputRef}
           style={styles.input}
           placeholder="Correo electrónico"
           placeholderTextColor="#888"
@@ -66,11 +96,9 @@ export function AuthView({ controller }: AuthViewProps) {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            textContentType="password"
-            autoComplete="password"
-            importantForAutofill="yes"
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
+            textContentType="newPassword"
+            returnKeyType="next"
+            onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
             submitBehavior="submit"
             editable={!loading}
           />
@@ -82,33 +110,49 @@ export function AuthView({ controller }: AuthViewProps) {
             <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="#888" />
           </TouchableOpacity>
         </View>
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            ref={confirmPasswordInputRef}
+            style={styles.passwordInput}
+            placeholder="Confirmar contraseña"
+            placeholderTextColor="#888"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            textContentType="newPassword"
+            returnKeyType="done"
+            onSubmitEditing={handleRegister}
+            submitBehavior="submit"
+            editable={!loading}
+          />
+          <TouchableOpacity 
+            style={styles.eyeIcon} 
+            onPress={toggleConfirmPasswordVisibility}
+            disabled={loading}
+          >
+            <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={24} color="#888" />
+          </TouchableOpacity>
+        </View>
         
         <TouchableOpacity 
           style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleLogin}
+          onPress={handleRegister}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.buttonText}>Login</Text>
+            <Text style={styles.buttonText}>Registrarse</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.resetButton} 
-          onPress={handleResetPassword}
-          disabled={loading}
-        >
-          <Text style={styles.resetText}>¿Has olvidado tu contraseña?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
           style={styles.linkButton} 
-          onPress={handleNavigateToRegister}
+          onPress={handleNavigateToLogin}
           disabled={loading}
         >
-          <Text style={styles.linkText}>¿No tienes cuenta? Regístrate</Text>
+          <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
         </TouchableOpacity>
       </View>
     </ThemedView>
@@ -178,15 +222,5 @@ const styles = StyleSheet.create({
     color: '#0a7ea4',
     fontSize: 14,
     fontWeight: '600',
-  },
-  resetButton: {
-    marginTop: 15,
-    alignItems: 'center',
-    padding: 5,
-  },
-  resetText: {
-    color: '#666',
-    fontSize: 14,
-    textDecorationLine: 'underline',
   },
 });

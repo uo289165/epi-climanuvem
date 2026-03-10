@@ -1,8 +1,12 @@
 import { auth } from '@/src/config/firebaseConfig';
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
+  updateProfile,
   type User as FirebaseUser,
   type Unsubscribe,
 } from 'firebase/auth';
@@ -19,7 +23,33 @@ export const AuthService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
     try {
       const credential = await signInWithEmailAndPassword(auth, email, password);
+      
+      if (!credential.user.emailVerified) {
+        await signOut(auth);
+        return { success: false, error: 'auth/email-not-verified' };
+      }
+
       return { success: true, user: mapFirebaseUser(credential.user) };
+    } catch (error: any) {
+      return { success: false, error: error.code ?? 'Error desconocido' };
+    }
+  },
+
+  register: async (username: string, email: string, password: string): Promise<AuthResponse> => {
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(credential.user, { displayName: username });
+      
+      // Update the user object to include the new displayName immediately
+      const updatedUser = { ...credential.user, displayName: username } as FirebaseUser;
+      
+      // Enviar correo de verificación
+      await sendEmailVerification(credential.user);
+      
+      // Cerrar sesión inmediatamente para requerir verificación antes de usar
+      await signOut(auth);
+
+      return { success: true, user: mapFirebaseUser(updatedUser) };
     } catch (error: any) {
       return { success: false, error: error.code ?? 'Error desconocido' };
     }
@@ -27,6 +57,15 @@ export const AuthService = {
 
   logout: async (): Promise<void> => {
     await signOut(auth);
+  },
+
+  resetPassword: async (email: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.code ?? 'Error desconocido' };
+    }
   },
 
   onAuthChange: (callback: (user: User | null) => void): Unsubscribe => {
