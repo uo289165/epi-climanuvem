@@ -17,6 +17,7 @@ interface AuthViewProps {
     readonly handleNavigateToRegister: () => void;
     readonly handleResetPassword: () => void;
     readonly passwordInputRef: React.RefObject<TextInput | null>;
+    readonly promptAsync: () => void;
   };
 }
 
@@ -32,7 +33,8 @@ export function AuthView({ controller }: AuthViewProps) {
     handleLogin, 
     handleNavigateToRegister,
     handleResetPassword,
-    passwordInputRef 
+    passwordInputRef,
+    promptAsync
   } = controller;
 
   return (
@@ -93,6 +95,15 @@ export function AuthView({ controller }: AuthViewProps) {
           ) : (
             <Text style={styles.buttonText}>Login</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.buttonGoogle, loading && styles.buttonDisabled]} 
+          onPress={() => promptAsync()}
+          disabled={loading}
+        >
+          <Ionicons name="logo-google" size={20} color="white" style={{ marginRight: 10 }} />
+          <Text style={styles.buttonText}>Continuar con Google</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -163,6 +174,15 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  buttonGoogle: {
+    backgroundColor: '#db4437',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: 10,
   },
   buttonText: {
     color: 'white',

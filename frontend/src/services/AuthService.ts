@@ -7,6 +7,8 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithCredential,
   type User as FirebaseUser,
   type Unsubscribe,
 } from 'firebase/auth';
@@ -72,5 +74,15 @@ export const AuthService = {
     return onAuthStateChanged(auth, (fbUser) => {
       callback(fbUser ? mapFirebaseUser(fbUser) : null);
     });
+  },
+
+  loginWithGoogle: async (idToken: string): Promise<AuthResponse> => {
+    try {
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, credential);
+      return { success: true, user: mapFirebaseUser(userCredential.user) };
+    } catch (error: any) {
+      return { success: false, error: error.code ?? 'Error desconocido' };
+    }
   },
 };

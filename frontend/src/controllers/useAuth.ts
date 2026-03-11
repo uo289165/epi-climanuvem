@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Alert, TextInput } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 // Regex básico para validar formato de email
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -11,6 +12,46 @@ export const useAuth = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Configuración de Google Sign-In Nativo
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: '404226456428-6kqoq5ic42g0g4k0qe9cur5qt85spu25.apps.googleusercontent.com',
+    });
+  }, []);
+
+  const promptAsync = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
+      
+      if (idToken) {
+        handleGoogleLogin(idToken);
+      } else {
+        Alert.alert('Error', 'No se pudo obtener el token de Google.');
+      }
+    } catch (error: any) {
+      console.log("Error Google Native:", error);
+      // Manejar cancelaciones o errores específicos si es necesario
+      if (error.code !== 'SIGN_IN_CANCELLED') {
+        Alert.alert('Error con Google', 'Ocurrió un error al intentar iniciar sesión con Google.');
+      }
+    }
+  };
+
+  const handleGoogleLogin = async (idToken: string) => {
+    setLoading(true);
+    const result = await AuthService.loginWithGoogle(idToken);
+    setLoading(false);
+
+    if (result.success) {
+      router.replace('/home');
+    } else {
+      const message = getErrorMessage(result.error ?? '');
+      Alert.alert('Error con Google Sign-In', message);
+    }
+  };
 
   // Creamos una referencia para poder apuntar al campo de contraseña
   const passwordInputRef = useRef<TextInput>(null);
@@ -85,6 +126,7 @@ export const useAuth = () => {
     handleNavigateToRegister,
     handleResetPassword,
     passwordInputRef,
+    promptAsync,
   };
 };
 
