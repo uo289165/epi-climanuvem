@@ -1,11 +1,9 @@
 import React from 'react';
-import { useAuth } from '@/src/controllers/useAuth';
-import { AuthView } from '@/src/views/AuthView';
+import { useWelcome } from '@/src/controllers/useWelcome';
+import { WelcomeView } from '@/src/views/WelcomeView';
 
-export default function LoginScreen() {
-  // Inicializamos el Controlador
-  const authController = useAuth();
+export default function WelcomeScreen() {
+  const welcomeController = useWelcome();
   
-  // Renderizamos la Vista pura inyectándole el Controlador
-  return <AuthView controller={authController} />;
+  return <WelcomeView controller={welcomeController} />;
 }

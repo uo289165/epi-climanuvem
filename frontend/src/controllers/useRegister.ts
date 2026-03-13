@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Alert, TextInput } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
 
-const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
 
 export const useRegister = () => {
   const [username, setUsername] = useState('');
@@ -65,7 +65,7 @@ export const useRegister = () => {
       // Si falla, se podría borrar la contraseña por seguridad
       setPassword('');
       setConfirmPassword('');
-      const message = getErrorMessage(response.error ?? '');
+      const message = getAuthErrorMessage(response.error ?? '');
       Alert.alert('Error', message);
     }
   };
@@ -103,19 +103,3 @@ export const useRegister = () => {
   };
 };
 
-function getErrorMessage(errorCode: string): string {
-  switch (errorCode) {
-    case 'auth/email-already-in-use':
-      return 'Este correo electrónico ya está en uso por otra cuenta.';
-    case 'auth/invalid-email':
-      return 'El formato del correo electrónico no es válido.';
-    case 'auth/operation-not-allowed':
-      return 'La creación de cuentas con correo y contraseña no está habilitada.';
-    case 'auth/weak-password':
-      return 'La contraseña es demasiado débil (debe tener al menos 6 caracteres).';
-    case 'auth/password-does-not-meet-requirements':
-      return 'La contraseña debe contener al menos una letra mayúscula y un número.';
-    default:
-      return `Error al registrarse: ${errorCode}`;
-  }
-}

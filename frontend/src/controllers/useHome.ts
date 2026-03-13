@@ -8,7 +8,12 @@ export const useHome = () => {
     router.replace('/');
   };
 
+  const handleNavigateToCapture = () => {
+    router.push('/capture' as any);
+  };
+
   return {
     handleLogout,
+    handleNavigateToCapture,
   };
 };

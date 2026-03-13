@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
-import { Alert, TextInput } from 'react-native';
+import { Alert, TextInput, Platform } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
+import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
+
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
-// Regex básico para validar formato de email
-const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
 export const useAuth = () => {
   const [email, setEmail] = useState('');
@@ -15,12 +15,23 @@ export const useAuth = () => {
 
   // Configuración de Google Sign-In Nativo
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: '404226456428-6kqoq5ic42g0g4k0qe9cur5qt85spu25.apps.googleusercontent.com',
-    });
+    if (GoogleSignin && Platform.OS !== 'web') {
+      try {
+        GoogleSignin.configure({
+          webClientId: '404226456428-6kqoq5ic42g0g4k0qe9cur5qt85spu25.apps.googleusercontent.com',
+        });
+      } catch (error) {
+        console.log("Error al configurar Google Sign-in:", error);
+      }
+    }
   }, []);
 
   const promptAsync = async () => {
+    if (!GoogleSignin) {
+      Alert.alert('Google Sign-in no disponible', 'Esta funcionalidad no está disponible en este entorno (ej. Expo Go).');
+      return;
+    }
+
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
@@ -48,7 +59,7 @@ export const useAuth = () => {
     if (result.success) {
       router.replace('/home');
     } else {
-      const message = getErrorMessage(result.error ?? '');
+      const message = getAuthErrorMessage(result.error ?? '');
       Alert.alert('Error con Google Sign-In', message);
     }
   };
@@ -77,8 +88,7 @@ export const useAuth = () => {
       router.replace('/home');
     } else {
       setPassword('');
-      // Traducir códigos de error de Firebase a mensajes amigables
-      const message = getErrorMessage(response.error ?? '');
+      const message = getAuthErrorMessage(response.error ?? '');
       Alert.alert('Error', message);
     }
   };
@@ -109,7 +119,7 @@ export const useAuth = () => {
         'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.'
       );
     } else {
-      const message = getErrorMessage(response.error ?? '');
+      const message = getAuthErrorMessage(response.error ?? '');
       Alert.alert('Error al restablecer', message);
     }
   };
@@ -130,26 +140,3 @@ export const useAuth = () => {
   };
 };
 
-// Traduce los códigos de error de Firebase a mensajes en español
-function getErrorMessage(errorCode: string): string {
-  switch (errorCode) {
-    case 'auth/invalid-email':
-      return 'El formato del correo electrónico no es válido.';
-    case 'auth/user-not-found':
-      return 'No existe una cuenta con este correo electrónico.';
-    case 'auth/wrong-password':
-      return 'La contraseña es incorrecta.';
-    case 'auth/invalid-credential':
-      return 'Credenciales incorrectas. Revisa tu correo y contraseña.';
-    case 'auth/missing-email':
-      return 'Falta el correo electrónico.';
-    case 'auth/too-many-requests':
-      return 'Demasiados intentos. Inténtalo de nuevo más tarde.';
-    case 'auth/user-disabled':
-      return 'Esta cuenta ha sido deshabilitada.';
-    case 'auth/email-not-verified':
-      return 'Debes verificar tu correo electrónico antes de iniciar sesión. Por favor, revisa tu bandeja de entrada y carpeta de spam.';
-    default:
-      return `Error de autenticación: ${errorCode}`;
-  }
-}

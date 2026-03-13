@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Text, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { AuthInput } from '@/components/ui/AuthInput';
+import { AuthButton } from '@/components/ui/AuthButton';
+import { AppHeader } from '@/components/ui/AppHeader';
 
 interface AuthViewProps {
   readonly controller: {
@@ -38,175 +39,138 @@ export function AuthView({ controller }: AuthViewProps) {
   } = controller;
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.formContainer}>
-        <ThemedText type="title" style={styles.title}>Iniciar Sesión</ThemedText>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.container}
+    >
+      <AppHeader />
+      
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.headerSection}>
+          <ThemedText type="title" style={styles.title}>Bienvenido de nuevo</ThemedText>
+          <ThemedText style={styles.subtitle}>Ingresa tus credenciales para acceder al panel de control.</ThemedText>
+        </View>
         
-        <TextInput
-          style={styles.input}
-          placeholder="Correo electrónico"
-          placeholderTextColor="#888"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          autoComplete="email"
-          importantForAutofill="yes"
-          returnKeyType="next"
-          onSubmitEditing={() => passwordInputRef.current?.focus()}
-          submitBehavior="submit"
-          editable={!loading}
-        />
-        
-        <View style={styles.passwordContainer}>
-          <TextInput
+        <View style={styles.formContainer}>
+          <AuthInput
+            icon="mail-outline"
+            placeholder="Correo electrónico"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            editable={!loading}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+          />
+          
+          <AuthInput
             ref={passwordInputRef}
-            style={styles.passwordInput}
+            icon="lock-closed-outline"
             placeholder="Contraseña"
-            placeholderTextColor="#888"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            textContentType="password"
-            autoComplete="password"
-            importantForAutofill="yes"
+            showEyeIcon
+            onEyePress={togglePasswordVisibility}
+            editable={!loading}
             returnKeyType="done"
             onSubmitEditing={handleLogin}
-            submitBehavior="submit"
-            editable={!loading}
           />
-          <TouchableOpacity 
-            style={styles.eyeIcon} 
-            onPress={togglePasswordVisibility}
+          
+          <AuthButton 
+            title="Iniciar Sesión" 
+            onPress={handleLogin} 
+            loading={loading}
+          />
+
+          <AuthButton 
+            title="Continuar con Google" 
+            onPress={promptAsync} 
+            variant="google"
+            icon="logo-google"
             disabled={loading}
-          >
-            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="#888" />
-          </TouchableOpacity>
+          />
+
+          <View style={styles.actionsContainer}>
+            <AuthButton 
+              title="¿Olvidaste tu contraseña?" 
+              onPress={handleResetPassword} 
+              variant="outline"
+              style={styles.resetButton}
+              textStyle={styles.resetText}
+              disabled={loading}
+            />
+
+            <View style={styles.registerLink}>
+              <Text style={styles.noAccountText}>¿No tienes cuenta? </Text>
+              <Text style={styles.linkText} onPress={handleNavigateToRegister}>Regístrate</Text>
+            </View>
+          </View>
         </View>
-        
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.buttonText}>Login</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.buttonGoogle, loading && styles.buttonDisabled]} 
-          onPress={() => promptAsync()}
-          disabled={loading}
-        >
-          <Ionicons name="logo-google" size={20} color="white" style={{ marginRight: 10 }} />
-          <Text style={styles.buttonText}>Continuar con Google</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.resetButton} 
-          onPress={handleResetPassword}
-          disabled={loading}
-        >
-          <Text style={styles.resetText}>¿Has olvidado tu contraseña?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.linkButton} 
-          onPress={handleNavigateToRegister}
-          disabled={loading}
-        >
-          <Text style={styles.linkText}>¿No tienes cuenta? Regístrate</Text>
-        </TouchableOpacity>
-      </View>
-    </ThemedView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  headerSection: {
+    marginTop: 20,
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 22,
   },
   formContainer: {
     width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
   },
-  title: {
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
-    color: '#333',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 15,
-    fontSize: 16,
-    color: '#333',
-  },
-  eyeIcon: {
-    padding: 15,
-  },
-  button: {
-    backgroundColor: '#0a7ea4',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonGoogle: {
-    backgroundColor: '#db4437',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  linkButton: {
+  actionsContainer: {
     marginTop: 20,
     alignItems: 'center',
-    padding: 10,
-  },
-  linkText: {
-    color: '#0a7ea4',
-    fontSize: 14,
-    fontWeight: '600',
   },
   resetButton: {
-    marginTop: 15,
-    alignItems: 'center',
-    padding: 5,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+    marginBottom: 20,
   },
   resetText: {
-    color: '#666',
-    fontSize: 14,
+    fontSize: 15,
     textDecorationLine: 'underline',
+    color: '#666',
+    fontWeight: '500',
+  },
+  registerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  noAccountText: {
+    color: '#666',
+    fontSize: 16,
+  },
+  linkText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

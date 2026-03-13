@@ -1,12 +1,17 @@
+import 'react-native-gesture-handler';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { View } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -17,21 +22,33 @@ export default function RootLayout() {
   useEffect(() => {
     // Hide splash screen immediately since we have no fonts to wait for
     SplashScreen.hideAsync();
+    
+    // Configurar el color de fondo a nivel de sistema para evitar parpadeos negros/vacíos
+    SystemUI.setBackgroundColorAsync('#f8f9fa');
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colorScheme === 'dark' ? '#151718' : '#ffffff' }}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade', // Hace que la transición sea un fundido suave
-          animationDuration: 150, // Hace la animación mucho más rápida (150ms frente a los ~350ms base)
-          contentStyle: { backgroundColor: 'transparent' }, // El fondo principal ahora lo pone la View padre de arriba
-        }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="home" options={{ gestureEnabled: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: 'slide_from_right',
+              animationTypeForReplace: 'push',
+              contentStyle: { backgroundColor: '#f8f9fa' },
+              // @ts-ignore
+              detachPreviousScreen: false,
+            } as any}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="register" />
+            <Stack.Screen name="capture" />
+            <Stack.Screen name="home" options={{ gestureEnabled: false }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
