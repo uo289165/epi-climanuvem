@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthInput } from '@/components/ui/AuthInput';
 import { AuthButton } from '@/components/ui/AuthButton';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { StatusModal } from '@/components/ui/StatusModal';
 
 interface RegisterViewProps {
   readonly controller: {
@@ -25,6 +26,14 @@ interface RegisterViewProps {
     readonly emailInputRef: React.RefObject<TextInput | null>;
     readonly passwordInputRef: React.RefObject<TextInput | null>;
     readonly confirmPasswordInputRef: React.RefObject<TextInput | null>;
+    readonly modalVisible: boolean;
+    readonly modalConfig: {
+      type: 'loading' | 'success' | 'error' | 'info';
+      title: string;
+      message: string;
+      onClose?: () => void;
+    };
+    readonly hideModal: () => void;
   };
 }
 
@@ -47,7 +56,10 @@ export function RegisterView({ controller }: RegisterViewProps) {
     handleNavigateToLogin,
     emailInputRef,
     passwordInputRef,
-    confirmPasswordInputRef
+    confirmPasswordInputRef,
+    modalVisible,
+    modalConfig,
+    hideModal
   } = controller;
 
   return (
@@ -130,6 +142,14 @@ export function RegisterView({ controller }: RegisterViewProps) {
           </View>
         </View>
       </ScrollView>
+
+      <StatusModal 
+        visible={modalVisible}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={modalConfig.onClose || hideModal}
+      />
     </KeyboardAvoidingView>
   );
 }

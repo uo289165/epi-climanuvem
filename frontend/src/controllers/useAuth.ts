@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
-import { Alert, TextInput, Platform } from 'react-native';
+import { TextInput, Platform } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
 import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
 
@@ -12,6 +12,28 @@ export const useAuth = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Estado para el modal de estado (moderno)
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{
+    type: 'loading' | 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+    onClose?: () => void;
+  }>({
+    type: 'loading',
+    title: '',
+    message: '',
+  });
+
+  const showModal = (type: 'loading' | 'success' | 'error' | 'info', title: string, message: string, onClose?: () => void) => {
+    setModalConfig({ type, title, message, onClose });
+    setModalVisible(true);
+  };
+
+  const hideModal = () => {
+    setModalVisible(false);
+  };
 
   // Configuración de Google Sign-In Nativo
   useEffect(() => {
@@ -28,7 +50,7 @@ export const useAuth = () => {
 
   const promptAsync = async () => {
     if (!GoogleSignin) {
-      Alert.alert('Google Sign-in no disponible', 'Esta funcionalidad no está disponible en este entorno (ej. Expo Go).');
+      showModal('error', 'Google Sign-in no disponible', 'Esta funcionalidad no está disponible en este entorno (ej. Expo Go).');
       return;
     }
 
@@ -40,13 +62,13 @@ export const useAuth = () => {
       if (idToken) {
         handleGoogleLogin(idToken);
       } else {
-        Alert.alert('Error', 'No se pudo obtener el token de Google.');
+        showModal('error', 'Error', 'No se pudo obtener el token de Google.');
       }
     } catch (error: any) {
       console.log("Error Google Native:", error);
       // Manejar cancelaciones o errores específicos si es necesario
       if (error.code !== 'SIGN_IN_CANCELLED') {
-        Alert.alert('Error con Google', 'Ocurrió un error al intentar iniciar sesión con Google.');
+        showModal('error', 'Error con Google', 'Ocurrió un error al intentar iniciar sesión con Google.');
       }
     }
   };
@@ -57,10 +79,10 @@ export const useAuth = () => {
     setLoading(false);
 
     if (result.success) {
-      router.replace('/home');
+      router.replace('/home' as any);
     } else {
       const message = getAuthErrorMessage(result.error ?? '');
-      Alert.alert('Error con Google Sign-In', message);
+      showModal('error', 'Error con Google Sign-In', message);
     }
   };
 
@@ -74,7 +96,7 @@ export const useAuth = () => {
   const handleLogin = async () => {
     // Validar formato de email
     if (!EMAIL_REGEX.test(email)) {
-      Alert.alert('Error', 'Por favor, introduce un correo electrónico válido.');
+      showModal('error', 'Error', 'Por favor, introduce un correo electrónico válido.');
       return;
     }
 
@@ -85,11 +107,11 @@ export const useAuth = () => {
     setLoading(false);
 
     if (response.success) {
-      router.replace('/home');
+      router.replace('/home' as any);
     } else {
       setPassword('');
       const message = getAuthErrorMessage(response.error ?? '');
-      Alert.alert('Error', message);
+      showModal('error', 'Error', message);
     }
   };
 
@@ -100,12 +122,12 @@ export const useAuth = () => {
 
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert('Error', 'Por favor, introduce tu correo electrónico primero para restablecer la contraseña.');
+      showModal('error', 'Error', 'Por favor, introduce tu correo electrónico primero para restablecer la contraseña.');
       return;
     }
 
     if (!EMAIL_REGEX.test(email)) {
-      Alert.alert('Error', 'Por favor, introduce un correo electrónico válido.');
+      showModal('error', 'Error', 'Por favor, introduce un correo electrónico válido.');
       return;
     }
 
@@ -114,13 +136,14 @@ export const useAuth = () => {
     setLoading(false);
 
     if (response.success) {
-      Alert.alert(
+      showModal(
+        'success',
         'Correo enviado',
         'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.'
       );
     } else {
       const message = getAuthErrorMessage(response.error ?? '');
-      Alert.alert('Error al restablecer', message);
+      showModal('error', 'Error al restablecer', message);
     }
   };
 
@@ -137,6 +160,9 @@ export const useAuth = () => {
     handleResetPassword,
     passwordInputRef,
     promptAsync,
+    modalVisible,
+    modalConfig,
+    hideModal,
   };
 };
 

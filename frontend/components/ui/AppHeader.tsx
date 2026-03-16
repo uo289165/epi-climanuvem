@@ -27,7 +27,7 @@ export const AppHeader = ({ title, showBack = true, onBack, transparent }: AppHe
           <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
       )}
-      {title && <Text style={styles.title}>{title}</Text>}
+      {title && <Text style={[styles.title, !showBack && styles.titleCentered]}>{title}</Text>}
     </View>
   );
 };
@@ -60,5 +60,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginRight: 60, // To center title when back button is present
+  },
+  titleCentered: {
+    marginRight: 0,
   },
 });

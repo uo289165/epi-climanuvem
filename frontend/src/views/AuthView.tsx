@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthInput } from '@/components/ui/AuthInput';
 import { AuthButton } from '@/components/ui/AuthButton';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { StatusModal } from '@/components/ui/StatusModal';
 
 interface AuthViewProps {
   readonly controller: {
@@ -19,6 +20,14 @@ interface AuthViewProps {
     readonly handleResetPassword: () => void;
     readonly passwordInputRef: React.RefObject<TextInput | null>;
     readonly promptAsync: () => void;
+    readonly modalVisible: boolean;
+    readonly modalConfig: {
+      type: 'loading' | 'success' | 'error' | 'info';
+      title: string;
+      message: string;
+      onClose?: () => void;
+    };
+    readonly hideModal: () => void;
   };
 }
 
@@ -35,7 +44,10 @@ export function AuthView({ controller }: AuthViewProps) {
     handleNavigateToRegister,
     handleResetPassword,
     passwordInputRef,
-    promptAsync
+    promptAsync,
+    modalVisible,
+    modalConfig,
+    hideModal
   } = controller;
 
   return (
@@ -109,6 +121,14 @@ export function AuthView({ controller }: AuthViewProps) {
           </View>
         </View>
       </ScrollView>
+
+      <StatusModal 
+        visible={modalVisible}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={modalConfig.onClose || hideModal}
+      />
     </KeyboardAvoidingView>
   );
 }

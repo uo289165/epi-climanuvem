@@ -1,21 +1,44 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/ui/AuthButton';
+import { HistoryModal } from '@/components/ui/HistoryModal';
+import { AnalysisHistoryItem } from '@/src/services/AnalysisService';
+import { Ionicons } from '@expo/vector-icons';
 
 interface WelcomeViewProps {
   readonly controller: {
     readonly handleNavigateToLogin: () => void;
     readonly handleNavigateToCapture: () => void;
+    readonly historyModalVisible: boolean;
+    readonly history: AnalysisHistoryItem[];
+    readonly loadingHistory: boolean;
+    readonly loadHistory: () => void;
+    readonly closeHistoryModal: () => void;
   };
 }
 
 export function WelcomeView({ controller }: WelcomeViewProps) {
-  const { handleNavigateToLogin, handleNavigateToCapture } = controller;
+  const { 
+    handleNavigateToLogin, 
+    handleNavigateToCapture,
+    historyModalVisible,
+    history,
+    loadingHistory,
+    loadHistory,
+    closeHistoryModal
+  } = controller;
 
   return (
     <View style={styles.container}>
       <View style={styles.overlay}>
+        <View style={styles.historyAccess}>
+          <TouchableOpacity onPress={loadHistory} style={styles.historyIconButton}>
+            <Ionicons name="list-outline" size={24} color="#007AFF" />
+            <Text style={styles.historyIconText}>Historial</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <Text style={styles.logoEmoji}>☁️</Text>
@@ -48,6 +71,13 @@ export function WelcomeView({ controller }: WelcomeViewProps) {
           <Text style={styles.footerText}>Desarrollado para el Observatorio EPI</Text>
         </View>
       </View>
+
+      <HistoryModal 
+        visible={historyModalVisible}
+        onClose={closeHistoryModal}
+        history={history}
+        loading={loadingHistory}
+      />
     </View>
   );
 }
@@ -80,6 +110,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#007AFF',
     letterSpacing: -1,
+    lineHeight: 44,
+    paddingVertical: 4,
   },
   title: {
     fontSize: 32,
@@ -111,5 +143,30 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 14,
     fontWeight: '500',
+  },
+  historyAccess: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    zIndex: 10,
+  },
+  historyIconButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  historyIconText: {
+    marginLeft: 6,
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

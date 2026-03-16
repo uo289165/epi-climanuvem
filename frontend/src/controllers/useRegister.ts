@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { router } from 'expo-router';
-import { Alert, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
 
 import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
@@ -13,6 +13,28 @@ export const useRegister = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Estado para el modal de estado
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{
+    type: 'loading' | 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+    onClose?: () => void;
+  }>({
+    type: 'loading',
+    title: '',
+    message: '',
+  });
+
+  const showModal = (type: 'loading' | 'success' | 'error' | 'info', title: string, message: string, onClose?: () => void) => {
+    setModalConfig({ type, title, message, onClose });
+    setModalVisible(true);
+  };
+
+  const hideModal = () => {
+    setModalVisible(false);
+  };
 
   // Referencias para el foco de los inputs
   const emailInputRef = useRef<TextInput>(null);
@@ -30,22 +52,22 @@ export const useRegister = () => {
   const handleRegister = async () => {
     // Validaciones
     if (username.length < 3 || username.length > 20) {
-      Alert.alert('Error', 'El nombre de usuario debe tener entre 3 y 20 caracteres.');
+      showModal('error', 'Error', 'El nombre de usuario debe tener entre 3 y 20 caracteres.');
       return;
     }
 
     if (!EMAIL_REGEX.test(email)) {
-      Alert.alert('Error', 'Por favor, introduce un correo electrónico válido.');
+      showModal('error', 'Error', 'Por favor, introduce un correo electrónico válido.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres.');
+      showModal('error', 'Error', 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden.');
+      showModal('error', 'Error', 'Las contraseñas no coinciden.');
       return;
     }
 
@@ -56,17 +78,21 @@ export const useRegister = () => {
     setLoading(false);
 
     if (response.success) {
-      Alert.alert(
+      showModal(
+        'success',
         'Registro exitoso',
         'Hemos enviado un correo de verificación. Por favor, verifica tu correo antes de iniciar sesión.',
-        [{ text: 'OK', onPress: handleNavigateToLogin }]
+        () => {
+          hideModal();
+          handleNavigateToLogin();
+        }
       );
     } else {
       // Si falla, se podría borrar la contraseña por seguridad
       setPassword('');
       setConfirmPassword('');
       const message = getAuthErrorMessage(response.error ?? '');
-      Alert.alert('Error', message);
+      showModal('error', 'Error', message);
     }
   };
 
@@ -100,6 +126,9 @@ export const useRegister = () => {
     emailInputRef,
     passwordInputRef,
     confirmPasswordInputRef,
+    modalVisible,
+    modalConfig,
+    hideModal,
   };
 };
 

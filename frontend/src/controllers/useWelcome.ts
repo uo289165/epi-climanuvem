@@ -1,6 +1,9 @@
 import { router } from 'expo-router';
+import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 
 export const useWelcome = () => {
+  const historyHook = useAnalysisHistory();
+
   const handleNavigateToLogin = () => {
     router.push('/login' as any);
   };
@@ -12,5 +15,6 @@ export const useWelcome = () => {
   return {
     handleNavigateToLogin,
     handleNavigateToCapture,
+    ...historyHook,
   };
 };

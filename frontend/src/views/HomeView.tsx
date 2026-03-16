@@ -3,16 +3,33 @@ import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from 'react-nati
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { HistoryModal } from '@/components/ui/HistoryModal';
+import { AnalysisHistoryItem } from '@/src/services/AnalysisService';
 
 interface HomeViewProps {
   readonly controller: {
     readonly handleLogout: () => void;
     readonly handleNavigateToCapture: () => void;
+    readonly historyModalVisible: boolean;
+    readonly history: AnalysisHistoryItem[];
+    readonly loadingHistory: boolean;
+    readonly loadHistory: () => void;
+    readonly closeHistoryModal: () => void;
+    readonly userName: string;
   };
 }
 
 export function HomeView({ controller }: HomeViewProps) {
-  const { handleLogout, handleNavigateToCapture } = controller;
+  const { 
+    handleLogout, 
+    handleNavigateToCapture,
+    historyModalVisible,
+    history,
+    loadingHistory,
+    loadHistory,
+    closeHistoryModal,
+    userName
+  } = controller;
 
   return (
     <View style={styles.container}>
@@ -26,7 +43,7 @@ export function HomeView({ controller }: HomeViewProps) {
             </View>
             <View>
               <ThemedText type="title" style={styles.title}>¡Bienvenido!</ThemedText>
-              <ThemedText style={styles.subtitle}>Observatorio ClimaNuvem</ThemedText>
+              <ThemedText style={styles.subtitle}>{userName}</ThemedText>
             </View>
           </View>
         </View>
@@ -44,7 +61,7 @@ export function HomeView({ controller }: HomeViewProps) {
           <Ionicons name="chevron-forward" size={20} color="#CCC" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionCard} onPress={() => {}}>
+        <TouchableOpacity style={styles.actionCard} onPress={loadHistory}>
           <View style={[styles.iconContainer, { backgroundColor: '#F3E5F5' }]}>
             <Ionicons name="list" size={28} color="#9C27B0" />
           </View>
@@ -65,6 +82,13 @@ export function HomeView({ controller }: HomeViewProps) {
           </View>
         </TouchableOpacity>
       </ScrollView>
+
+      <HistoryModal 
+        visible={historyModalVisible}
+        onClose={closeHistoryModal}
+        history={history}
+        loading={loadingHistory}
+      />
     </View>
   );
 }
@@ -105,6 +129,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 2,
+    color: '#007AFF',
   },
   subtitle: {
     fontSize: 14,

@@ -1,19 +1,33 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { StatusModal } from '@/components/ui/StatusModal';
 
 interface CaptureViewProps {
   readonly controller: {
-    readonly loading: boolean;
     readonly handleCameraCapture: () => void;
     readonly handleGallerySelection: () => void;
+    readonly modalVisible: boolean;
+    readonly modalConfig: {
+      type: 'loading' | 'success' | 'error' | 'info';
+      title: string;
+      message: string;
+      onClose?: () => void;
+    };
+    readonly hideModal: () => void;
   };
 }
 
 export function CaptureView({ controller }: CaptureViewProps) {
-  const { loading, handleCameraCapture, handleGallerySelection } = controller;
+  const { 
+    handleCameraCapture, 
+    handleGallerySelection,
+    modalVisible,
+    modalConfig,
+    hideModal
+  } = controller;
 
   return (
     <View style={styles.container}>
@@ -32,9 +46,8 @@ export function CaptureView({ controller }: CaptureViewProps) {
 
         <View style={styles.optionsContainer}>
           <TouchableOpacity 
-            style={[styles.optionCard, loading && styles.disabledCard]} 
+            style={styles.optionCard} 
             onPress={handleCameraCapture} 
-            disabled={loading}
           >
             <View style={[styles.iconCircle, { backgroundColor: '#E3F2FD' }]}>
               <Ionicons name="camera" size={32} color="#007AFF" />
@@ -47,9 +60,8 @@ export function CaptureView({ controller }: CaptureViewProps) {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.optionCard, loading && styles.disabledCard]} 
+            style={styles.optionCard} 
             onPress={handleGallerySelection} 
-            disabled={loading}
           >
             <View style={[styles.iconCircle, { backgroundColor: '#F3E5F5' }]}>
               <Ionicons name="image" size={32} color="#9C27B0" />
@@ -68,15 +80,13 @@ export function CaptureView({ controller }: CaptureViewProps) {
         </View>
       </ScrollView>
 
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>Procesando imagen...</Text>
-            <Text style={styles.loadingSubtext}>Esto puede tardar unos segundos</Text>
-          </View>
-        </View>
-      )}
+      <StatusModal 
+        visible={modalVisible}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={modalConfig.onClose || hideModal}
+      />
     </View>
   );
 }

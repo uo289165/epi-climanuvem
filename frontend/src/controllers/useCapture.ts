@@ -1,11 +1,31 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { AnalysisService } from '@/src/services/AnalysisService';
 
 export const useCapture = () => {
-  const [loading, setLoading] = useState(false);
+
+  // Estado para el modal de estado
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{
+    type: 'loading' | 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+    onClose?: () => void;
+  }>({
+    type: 'loading',
+    title: '',
+    message: '',
+  });
+
+  const showModal = (type: 'loading' | 'success' | 'error' | 'info', title: string, message: string, onClose?: () => void) => {
+    setModalConfig({ type, title, message, onClose });
+    setModalVisible(true);
+  };
+
+  const hideModal = () => {
+    setModalVisible(false);
+  };
 
   const validateIsJpg = (uri: string) => {
     const extension = uri.split('.').pop()?.toLowerCase();
@@ -16,10 +36,11 @@ export const useCapture = () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert(
-        'Permiso denegado',
+      showModal(
+        'error', 
+        'Permiso denegado', 
         'El permiso de cámara es necesario para utilizar esta funcionalidad.',
-        [{ text: 'OK', onPress: () => router.replace('/' as any) }]
+        () => router.replace('/' as any)
       );
       return;
     }
@@ -39,10 +60,11 @@ export const useCapture = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert(
-        'Permiso denegado',
+      showModal(
+        'error', 
+        'Permiso denegado', 
         'El permiso de galería es necesario para utilizar esta funcionalidad.',
-        [{ text: 'OK', onPress: () => router.replace('/' as any) }]
+        () => router.replace('/' as any)
       );
       return;
     }
@@ -60,29 +82,33 @@ export const useCapture = () => {
 
   const processImage = async (uri: string) => {
     if (!validateIsJpg(uri)) {
-      Alert.alert('Formato no válido', 'El sistema únicamente acepta imágenes en formato JPG.');
+      showModal('error', 'Formato no válido', 'El sistema únicamente acepta imágenes en formato JPG.');
       return;
     }
 
-    setLoading(true);
+    showModal('loading', 'Procesando imagen...', 'Esto puede tardar unos segundos');
     try {
       await AnalysisService.uploadImage(uri);
-      Alert.alert(
+      showModal(
+        'success',
         'Imagen enviada',
         'La imagen está siendo analizada. Te redirigiremos a la pantalla principal.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        () => {
+          hideModal();
+          router.back();
+        }
       );
     } catch (error) {
-      Alert.alert('Error', 'Hubo un problema al enviar la imagen al servidor.');
+      showModal('error', 'Error', 'Hubo un problema al enviar la imagen al servidor.');
       console.error(error);
-    } finally {
-      setLoading(false);
     }
   };
 
   return {
-    loading,
     handleCameraCapture,
     handleGallerySelection,
+    modalVisible,
+    modalConfig,
+    hideModal,
   };
 };
