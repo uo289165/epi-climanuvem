@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>404226456428-coe4924mgeuhhc7touein3071i5lkloj.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.404226456428-coe4924mgeuhhc7touein3071i5lkloj</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>404226456428-9mbbmumcvqt9b0p8qr2inpidm4tr9qp5.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDKJ4ronTHcYC3obGGn5crIJ9B3AHLLaec</string>
+	<key>GCM_SENDER_ID</key>
+	<string>404226456428</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.friede.climanuvem</string>
+	<key>PROJECT_ID</key>
+	<string>climanuvem-47b82</string>
+	<key>STORAGE_BUCKET</key>
+	<string>climanuvem-47b82.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:404226456428:ios:469e92d3941f6e839f1149</string>
+</dict>
+</plist>

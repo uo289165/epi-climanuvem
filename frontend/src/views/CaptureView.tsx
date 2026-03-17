@@ -41,7 +41,7 @@ export function CaptureView({ controller }: CaptureViewProps) {
         </View>
 
         <ThemedText style={styles.subtitle}>
-          Selecciona una de las siguientes opciones para subir una fotografía y analizarla. El sistema identificará automáticamente los patrones climáticos.
+          Selecciona una de las siguientes opciones para subir una fotografía y analizarla. El sistema identificará automáticamente las nubes encontradas.
         </ThemedText>
 
         <View style={styles.optionsContainer}>

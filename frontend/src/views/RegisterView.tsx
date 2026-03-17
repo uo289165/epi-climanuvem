@@ -72,7 +72,7 @@ export function RegisterView({ controller }: RegisterViewProps) {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.headerSection}>
           <ThemedText type="title" style={styles.title}>Crear Cuenta</ThemedText>
-          <ThemedText style={styles.subtitle}>Únete al Observatorio para empezar a gestionar datos climáticos.</ThemedText>
+          <ThemedText style={styles.subtitle}>Regístrate para poder acceder a tus análisis pasados.</ThemedText>
         </View>
         
         <View style={styles.formContainer}>

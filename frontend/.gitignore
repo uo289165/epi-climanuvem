@@ -39,8 +39,8 @@ yarn-error.*
 app-example
 
 # generated native folders
-/ios
-/android
+ios/
+android/
 
 # Created by https://www.toptal.com/developers/gitignore/api/reactnative
 # Edit at https://www.toptal.com/developers/gitignore?templates=reactnative
@@ -107,8 +107,8 @@ render.experimental.xml
 *.keystore
 
 # Google Services (e.g. APIs or Firebase)
-google-services.json
-GoogleService-Info.plist
+# google-services.json
+# GoogleService-Info.plist
 signing_report.txt
 
 # Android Profiling

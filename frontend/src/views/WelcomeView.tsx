@@ -45,9 +45,9 @@ export function WelcomeView({ controller }: WelcomeViewProps) {
             <ThemedText style={styles.logoText}>ClimaNuvem</ThemedText>
           </View>
           
-          <ThemedText type="title" style={styles.title}>Centro de Observación</ThemedText>
+          <ThemedText type="title" style={styles.title}>Meteorólogo de bolsillo</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Monitorización climática avanzada y gestión inteligente de datos meteorológicos.
+            Analiza el tiempo y las nubes con tu móvil.
           </ThemedText>
 
           <View style={styles.buttonContainer}>
@@ -65,10 +65,6 @@ export function WelcomeView({ controller }: WelcomeViewProps) {
               icon="camera-outline"
             />
           </View>
-        </View>
-        
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Desarrollado para el Observatorio EPI</Text>
         </View>
       </View>
 
@@ -115,10 +111,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    marginBottom: 12,
+    marginBottom: 20,
     textAlign: 'center',
     fontWeight: 'bold',
     color: '#1A1A1A',
+    lineHeight: 40,
   },
   subtitle: {
     fontSize: 17,
@@ -131,18 +128,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
     maxWidth: 320,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '500',
   },
   historyAccess: {
     position: 'absolute',
