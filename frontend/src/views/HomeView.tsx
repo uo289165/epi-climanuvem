@@ -4,13 +4,20 @@ import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { HistoryModal } from '@/components/ui/HistoryModal';
+import { StatusModal, ModalType } from '@/components/ui/StatusModal';
 import { AnalysisHistoryItem } from '@/src/services/AnalysisService';
 
 interface HomeViewProps {
   readonly controller: {
     readonly handleLogout: () => void;
     readonly handleNavigateToCapture: () => void;
+    readonly handleTestBackend: () => void;
+    readonly closeModal: () => void;
     readonly historyModalVisible: boolean;
+    readonly modalVisible: boolean;
+    readonly modalType: ModalType;
+    readonly modalTitle: string;
+    readonly modalMessage: string;
     readonly history: AnalysisHistoryItem[];
     readonly loadingHistory: boolean;
     readonly loadHistory: () => void;
@@ -23,7 +30,13 @@ export function HomeView({ controller }: HomeViewProps) {
   const { 
     handleLogout, 
     handleNavigateToCapture,
+    handleTestBackend,
+    closeModal,
     historyModalVisible,
+    modalVisible,
+    modalType,
+    modalTitle,
+    modalMessage,
     history,
     loadingHistory,
     loadHistory,
@@ -72,6 +85,17 @@ export function HomeView({ controller }: HomeViewProps) {
           <Ionicons name="chevron-forward" size={20} color="#CCC" />
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.actionCard} onPress={handleTestBackend}>
+          <View style={[styles.iconContainer, { backgroundColor: '#E8F5E9' }]}>
+            <Ionicons name="flask" size={28} color="#4CAF50" />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={styles.actionTitle}>Probar Backend</Text>
+            <Text style={styles.actionDescription}>Verificar conexión con el servidor</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#CCC" />
+        </TouchableOpacity>
+
         <TouchableOpacity style={[styles.actionCard, styles.logoutCard]} onPress={handleLogout}>
           <View style={[styles.iconContainer, { backgroundColor: '#FFEBEE' }]}>
             <Ionicons name="log-out" size={28} color="#F44336" />
@@ -88,6 +112,14 @@ export function HomeView({ controller }: HomeViewProps) {
         onClose={closeHistoryModal}
         history={history}
         loading={loadingHistory}
+      />
+
+      <StatusModal
+        visible={modalVisible}
+        type={modalType}
+        title={modalTitle}
+        message={modalMessage}
+        onClose={closeModal}
       />
     </View>
   );
