@@ -49,4 +49,46 @@ export const BackendService = {
       throw error;
     }
   },
+
+  /**
+   * Obtiene el historial real de análisis del usuario.
+   * Requiere autenticación.
+   */
+  getAnalysisHistory: async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
+      }
+
+      const token = await user.getIdToken(true);
+      const response = await fetch(`${BACKEND_URL}/analysis/history`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
+        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('La petición excedió el tiempo de espera al obtener historial.');
+      }
+      console.error('Error en BackendService.getAnalysisHistory:', error);
+      throw error;
+    }
+  },
 };
