@@ -1,4 +1,3 @@
-import 'react-native-gesture-handler';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,7 +9,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-import { View } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -45,6 +43,7 @@ export default function RootLayout() {
             <Stack.Screen name="register" />
             <Stack.Screen name="capture" />
             <Stack.Screen name="home" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="profile" />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

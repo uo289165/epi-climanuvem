@@ -51,6 +51,63 @@ export const BackendService = {
   },
 
   /**
+   * Sube una imagen para su análisis con su ubicación.
+   * Requiere autenticación.
+   */
+  uploadImage: async (imageUri: string, locationStr: string) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
+      }
+
+      const token = await user.getIdToken(true);
+      
+      const formData = new FormData();
+      const filename = imageUri.split('/').pop() || 'photo.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      formData.append('file', {
+        uri: imageUri,
+        name: filename,
+        type: type,
+      } as any);
+
+      formData.append('location', locationStr);
+
+      const response = await fetch(`${BACKEND_URL}/analysis/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // Fetch sets Content-Type automatically for FormData boundary
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
+        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('La petición excedió el tiempo de espera al subir la imagen.');
+      }
+      console.error('Error en BackendService.uploadImage:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Obtiene el historial real de análisis del usuario.
    * Requiere autenticación.
    */
@@ -81,13 +138,60 @@ export const BackendService = {
         throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return data.map((item: any) => {
+        if (item.imageUrl?.startsWith('/uploads/')) {
+          item.imageUrl = `${BACKEND_URL}${item.imageUrl}`;
+        }
+        return item;
+      });
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
         throw new Error('La petición excedió el tiempo de espera al obtener historial.');
       }
       console.error('Error en BackendService.getAnalysisHistory:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Elimina todos los análisis y datos asociados al usuario actual.
+   * Requiere autenticación.
+   */
+  deleteUserData: async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
+      }
+
+      const token = await user.getIdToken(true);
+      const response = await fetch(`${BACKEND_URL}/analysis/user-data`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
+        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('La petición excedió el tiempo de espera al eliminar historial.');
+      }
+      console.error('Error en BackendService.deleteUserData:', error);
       throw error;
     }
   },

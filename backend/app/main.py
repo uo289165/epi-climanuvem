@@ -2,10 +2,37 @@ import os
 import anyio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.infrastructure.database.database import engine
 from app.presentation.routes import test_routes, analysis_routes
+
+def _cleanup_obsolete_analyses(conn):
+    cleanup_query = text("""
+        SELECT id, image_path 
+        FROM analysis 
+        WHERE is_anon = TRUE AND datetime < NOW() - INTERVAL '3 days'
+    """)
+    obsolete_analyses = conn.execute(cleanup_query).fetchall()
+    
+    if not obsolete_analyses:
+        return
+        
+    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
+    
+    for row in obsolete_analyses:
+        if row.image_path:
+            filename = row.image_path.split("/")[-1]
+            file_path = os.path.join(uploads_dir, filename)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    print(f"Error deleting file {file_path}: {e}")
+                    
+        conn.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": row.id})
+        conn.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": row.id})
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,9 +49,18 @@ async def lifespan(app: FastAPI):
             seed_clouds_path = os.path.join(os.path.dirname(__file__), "infrastructure", "database", "seed_clouds.sql")
             seed_clouds_sql = await anyio.Path(seed_clouds_path).read_text(encoding="utf-8")
             conn.execute(text(seed_clouds_sql))
+            
+        # Cleanup obsolete anonymous analyses (older than 3 days)
+        _cleanup_obsolete_analyses(conn)
+                
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+# Mount the static directory for uploads
+uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,

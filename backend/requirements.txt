@@ -45,3 +45,4 @@ urllib3==2.6.3
 uvicorn==0.42.0
 sqlalchemy
 psycopg2-binary
+python-multipart

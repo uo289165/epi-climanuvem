@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { AnalysisService } from '@/src/services/AnalysisService';
 
@@ -86,9 +87,43 @@ export const useCapture = () => {
       return;
     }
 
-    showModal('loading', 'Procesando imagen...', 'Esto puede tardar unos segundos');
+    showModal('loading', 'Obteniendo ubicación...', 'Por favor espera...');
+    let locationStr = "Ubicación desconocida";
     try {
-      await AnalysisService.uploadImage(uri);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        
+        try {
+          // Reverse geocoding para obtener la ciudad y país
+          const geocode = await Location.reverseGeocodeAsync({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude
+          });
+          
+          if (geocode && geocode.length > 0) {
+            const address = geocode[0];
+            const city = address.city || address.subregion || address.region || 'Ciudad desconocida';
+            const country = address.country || 'País desconocido';
+            locationStr = `${city}, ${country}`;
+          } else {
+            locationStr = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
+          }
+        } catch (geoError) {
+          console.log("Error en reverse geocoding:", geoError);
+          locationStr = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
+        }
+        
+      } else {
+        console.log("Permiso de ubicación denegado, se usará 'Ubicación desconocida'");
+      }
+    } catch (e) {
+      console.log("Error obteniendo ubicación:", e);
+    }
+
+    showModal('loading', 'Subiendo imagen...', 'Esto puede tardar unos segundos');
+    try {
+      await AnalysisService.uploadImage(uri, locationStr);
       showModal(
         'success',
         'Imagen enviada',

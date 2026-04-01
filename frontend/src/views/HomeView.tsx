@@ -11,6 +11,7 @@ interface HomeViewProps {
   readonly controller: {
     readonly handleLogout: () => void;
     readonly handleNavigateToCapture: () => void;
+    readonly handleNavigateToProfile: () => void;
     readonly handleTestBackend: () => void;
     readonly closeModal: () => void;
     readonly historyModalVisible: boolean;
@@ -23,6 +24,7 @@ interface HomeViewProps {
     readonly loadHistory: () => void;
     readonly closeHistoryModal: () => void;
     readonly userName: string;
+    readonly isGuest: boolean;
   };
 }
 
@@ -30,6 +32,7 @@ export function HomeView({ controller }: HomeViewProps) {
   const { 
     handleLogout, 
     handleNavigateToCapture,
+    handleNavigateToProfile,
     handleTestBackend,
     closeModal,
     historyModalVisible,
@@ -41,7 +44,8 @@ export function HomeView({ controller }: HomeViewProps) {
     loadingHistory,
     loadHistory,
     closeHistoryModal,
-    userName
+    userName,
+    isGuest
   } = controller;
 
   return (
@@ -49,17 +53,25 @@ export function HomeView({ controller }: HomeViewProps) {
       <AppHeader title="Inicio" showBack={false} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.welcomeCard}>
+        <TouchableOpacity 
+          style={styles.welcomeCard}
+          onPress={handleNavigateToProfile}
+          disabled={isGuest}
+          activeOpacity={0.7}
+        >
           <View style={styles.welcomeHeader}>
             <View style={styles.avatarCircle}>
               <Ionicons name="person" size={32} color="#007AFF" />
             </View>
-            <View>
+            <View style={styles.welcomeTextContainer}>
               <ThemedText type="title" style={styles.title}>¡Bienvenido!</ThemedText>
               <ThemedText style={styles.subtitle}>{userName}</ThemedText>
             </View>
+            {!isGuest && (
+              <Ionicons name="chevron-forward" size={24} color="#CCC" />
+            )}
           </View>
-        </View>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Acciones rápidas</Text>
         
@@ -156,6 +168,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+  },
+  welcomeTextContainer: {
+    flex: 1,
   },
   title: {
     fontSize: 24,

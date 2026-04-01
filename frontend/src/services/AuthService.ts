@@ -7,8 +7,10 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  deleteUser,
   GoogleAuthProvider,
   signInWithCredential,
+  signInAnonymously,
   type User as FirebaseUser,
   type Unsubscribe,
 } from 'firebase/auth';
@@ -19,6 +21,7 @@ const mapFirebaseUser = (fbUser: FirebaseUser): User => ({
   uid: fbUser.uid,
   displayName: fbUser.displayName ?? undefined,
   email: fbUser.email ?? '',
+  isAnonymous: fbUser.isAnonymous,
 });
 
 export const AuthService = {
@@ -81,6 +84,37 @@ export const AuthService = {
       const credential = GoogleAuthProvider.credential(idToken);
       const userCredential = await signInWithCredential(auth, credential);
       return { success: true, user: mapFirebaseUser(userCredential.user) };
+    } catch (error: any) {
+      return { success: false, error: error.code ?? 'Error desconocido' };
+    }
+  },
+
+  loginAnonymously: async (): Promise<AuthResponse> => {
+    try {
+      const credential = await signInAnonymously(auth);
+      return { success: true, user: mapFirebaseUser(credential.user) };
+    } catch (error: any) {
+      return { success: false, error: error.code ?? 'Error desconocido' };
+    }
+  },
+
+  updateUserName: async (newName: string): Promise<AuthResponse> => {
+    try {
+      if (!auth.currentUser) throw new Error('No user logged in');
+      await updateProfile(auth.currentUser, { displayName: newName });
+      
+      const updatedUser = { ...auth.currentUser, displayName: newName } as FirebaseUser;
+      return { success: true, user: mapFirebaseUser(updatedUser) };
+    } catch (error: any) {
+      return { success: false, error: error.code ?? 'Error desconocido' };
+    }
+  },
+
+  deleteAccount: async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (!auth.currentUser) throw new Error('No user logged in');
+      await deleteUser(auth.currentUser);
+      return { success: true };
     } catch (error: any) {
       return { success: false, error: error.code ?? 'Error desconocido' };
     }

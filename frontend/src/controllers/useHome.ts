@@ -1,29 +1,31 @@
-import { useState, useEffect } from 'react';
-import { router } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { router, useFocusEffect } from 'expo-router';
 import { AuthService } from '@/src/services/AuthService';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { auth } from '@/src/config/firebaseConfig';
-import { onAuthStateChanged } from 'firebase/auth';
 import { BackendService } from '@/src/services/BackendService';
 
 export const useHome = () => {
   const historyHook = useAnalysisHistory();
   const [userName, setUserName] = useState<string>('');
+  const [isGuest, setIsGuest] = useState<boolean>(true);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [modalType, setModalType] = useState<'loading' | 'success' | 'error' | 'info'>('info');
   const [modalTitle, setModalTitle] = useState<string>('');
   const [modalMessage, setModalMessage] = useState<string>('');
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+  useFocusEffect(
+    useCallback(() => {
+      const user = auth.currentUser;
       if (user) {
-        setUserName(user.displayName || user.email || 'Usuario');
+        setUserName(user.isAnonymous ? 'Invitado' : (user.displayName || user.email || 'Usuario'));
+        setIsGuest(user.isAnonymous);
       } else {
         setUserName('Invitado');
+        setIsGuest(true);
       }
-    });
-    return unsubscribe;
-  }, []);
+    }, [])
+  );
 
   const handleLogout = async () => {
     await AuthService.logout();
@@ -32,6 +34,10 @@ export const useHome = () => {
 
   const handleNavigateToCapture = () => {
     router.push('/capture' as any);
+  };
+
+  const handleNavigateToProfile = () => {
+    router.push('/profile' as any);
   };
 
   const handleTestBackend = async () => {
@@ -59,9 +65,11 @@ export const useHome = () => {
   return {
     handleLogout,
     handleNavigateToCapture,
+    handleNavigateToProfile,
     handleTestBackend,
     closeModal,
     userName,
+    isGuest,
     modalVisible,
     modalType,
     modalTitle,
