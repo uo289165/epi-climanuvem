@@ -9,15 +9,15 @@ from sqlalchemy import text
 
 from app.presentation.dependencies.auth_dependency import get_current_user
 from app.infrastructure.database.database import get_db, engine
+from app.business.analysis_service import AnalysisService
 
 router = APIRouter()
 
 USER_ID_NOT_FOUND_MSG = "User ID not found in token"
 
-async def process_analysis_task(analysis_id: int):
-    await asyncio.sleep(15)
-    with engine.begin() as conn:
-        conn.execute(text("UPDATE analysis SET status = 'completed' WHERE id = :id"), {"id": analysis_id})
+async def process_analysis_task(analysis_id: int, file_path: str):
+    service = AnalysisService()
+    await service.process_image(analysis_id, file_path)
 
 @router.post("/upload", responses={401: {"description": "Unauthorized"}})
 async def upload_image(
@@ -62,23 +62,9 @@ async def upload_image(
     })
     analysis_id = result.scalar()
     
-    clouds_query = text("SELECT id FROM clouds WHERE name IN ('Cirros', 'Cumulonimbos')")
-    clouds_result = db.execute(clouds_query).fetchall()
-    
-    for row in clouds_result:
-        insert_assoc = text("""
-            INSERT INTO analysis_cloud (analysis_id, cloud_id, confidence)
-            VALUES (:analysis_id, :cloud_id, :confidence)
-        """)
-        db.execute(insert_assoc, {
-            "analysis_id": analysis_id,
-            "cloud_id": row.id,
-            "confidence": 0.9
-        })
-        
     db.commit()
     
-    background_tasks.add_task(process_analysis_task, analysis_id)
+    background_tasks.add_task(process_analysis_task, analysis_id, file_path)
     
     return {
         "message": "Imagen recibida correctamente. Iniciando análisis...",

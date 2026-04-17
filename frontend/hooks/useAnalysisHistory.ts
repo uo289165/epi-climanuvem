@@ -8,20 +8,31 @@ export const useAnalysisHistory = () => {
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsLoggedIn(!!user);
+      if (!user) {
+        setHistory([]);
+        setHasLoaded(false);
+      }
     });
     return unsubscribe;
   }, []);
 
-  const loadHistory = async () => {
-    setLoadingHistory(true);
+  const loadHistory = async (forceRefresh: boolean = false) => {
     setHistoryModalVisible(true);
+    
+    if (hasLoaded && !forceRefresh) {
+      return;
+    }
+
+    setLoadingHistory(true);
     try {
       const data = await AnalysisService.getHistory(isLoggedIn);
       setHistory(data);
+      setHasLoaded(true);
     } catch (error) {
       console.error('Error loading history:', error);
     } finally {

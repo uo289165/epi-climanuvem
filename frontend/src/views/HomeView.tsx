@@ -21,7 +21,7 @@ interface HomeViewProps {
     readonly modalMessage: string;
     readonly history: AnalysisHistoryItem[];
     readonly loadingHistory: boolean;
-    readonly loadHistory: () => void;
+    readonly loadHistory: (forceRefresh?: boolean) => void;
     readonly closeHistoryModal: () => void;
     readonly userName: string;
     readonly isGuest: boolean;
@@ -86,7 +86,7 @@ export function HomeView({ controller }: HomeViewProps) {
           <Ionicons name="chevron-forward" size={20} color="#CCC" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionCard} onPress={loadHistory}>
+        <TouchableOpacity style={styles.actionCard} onPress={() => loadHistory()}>
           <View style={[styles.iconContainer, { backgroundColor: '#F3E5F5' }]}>
             <Ionicons name="list" size={28} color="#9C27B0" />
           </View>
@@ -124,6 +124,7 @@ export function HomeView({ controller }: HomeViewProps) {
         onClose={closeHistoryModal}
         history={history}
         loading={loadingHistory}
+        onRefresh={() => loadHistory(true)}
       />
 
       <StatusModal

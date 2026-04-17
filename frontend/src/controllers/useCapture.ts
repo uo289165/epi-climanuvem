@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { AnalysisService } from '@/src/services/AnalysisService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const useCapture = () => {
 

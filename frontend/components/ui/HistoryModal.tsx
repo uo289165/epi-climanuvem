@@ -26,6 +26,7 @@ interface HistoryModalProps {
   onClose: () => void;
   history: AnalysisHistoryItem[];
   loading: boolean;
+  onRefresh?: () => void;
 }
 
 const HandleBar = () => (
@@ -150,7 +151,7 @@ const HistoryContent = ({
   );
 };
 
-export const HistoryModal = ({ visible, onClose, history, loading }: HistoryModalProps) => {
+export const HistoryModal = ({ visible, onClose, history, loading, onRefresh }: HistoryModalProps) => {
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisHistoryItem | null>(null);
   const translateY = useSharedValue(0);
 
@@ -211,9 +212,16 @@ export const HistoryModal = ({ visible, onClose, history, loading }: HistoryModa
                 {!selectedAnalysis && (
                   <View style={styles.header}>
                     <Text style={styles.title}>Historial de Análisis</Text>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                      <Ionicons name="close" size={24} color="#333" />
-                    </TouchableOpacity>
+                    <View style={styles.headerActions}>
+                      {onRefresh && (
+                        <TouchableOpacity onPress={onRefresh} style={styles.actionButton} disabled={loading}>
+                          <Ionicons name="refresh" size={24} color={loading ? "#999" : "#333"} />
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity onPress={onClose} style={styles.actionButton}>
+                        <Ionicons name="close" size={24} color="#333" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
               </View>
@@ -263,7 +271,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1A1A1A',
   },
-  closeButton: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionButton: {
     padding: 8,
     backgroundColor: '#F5F5F5',
     borderRadius: 20,

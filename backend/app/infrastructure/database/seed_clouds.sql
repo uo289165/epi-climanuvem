@@ -22,7 +22,7 @@ INSERT INTO clouds (name, forecast, warning, warning_level) VALUES
 ('Cumulonimbos',
  'Tormenta probable',
  'Tormenta eléctrica, lluvia intensa, viento fuerte',
- 4),
+ 3),
 
 ('Altoestratos',
  'Cambio de tiempo probable',
@@ -52,4 +52,9 @@ INSERT INTO clouds (name, forecast, warning, warning_level) VALUES
 ('Estelas de avión',
  'Alta humedad en altura',
  'Posible cambio de tiempo',
+ 0),
+
+('Sin nubes',
+ 'Cielo despejado, condiciones estables',
+ 'Ninguno',
  0);
