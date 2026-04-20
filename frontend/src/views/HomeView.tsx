@@ -23,6 +23,7 @@ interface HomeViewProps {
     readonly loadingHistory: boolean;
     readonly loadHistory: (forceRefresh?: boolean) => void;
     readonly closeHistoryModal: () => void;
+    readonly initialSelectedAnalysisId?: string | null;
     readonly userName: string;
     readonly isGuest: boolean;
   };
@@ -44,6 +45,7 @@ export function HomeView({ controller }: HomeViewProps) {
     loadingHistory,
     loadHistory,
     closeHistoryModal,
+    initialSelectedAnalysisId,
     userName,
     isGuest
   } = controller;
@@ -125,6 +127,7 @@ export function HomeView({ controller }: HomeViewProps) {
         history={history}
         loading={loadingHistory}
         onRefresh={() => loadHistory(true)}
+        initialSelectedAnalysisId={initialSelectedAnalysisId}
       />
 
       <StatusModal

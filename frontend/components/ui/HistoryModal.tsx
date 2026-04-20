@@ -27,6 +27,7 @@ interface HistoryModalProps {
   history: AnalysisHistoryItem[];
   loading: boolean;
   onRefresh?: () => void;
+  initialSelectedAnalysisId?: string | null;
 }
 
 const HandleBar = () => (
@@ -151,9 +152,16 @@ const HistoryContent = ({
   );
 };
 
-export const HistoryModal = ({ visible, onClose, history, loading, onRefresh }: HistoryModalProps) => {
+export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, initialSelectedAnalysisId }: HistoryModalProps) => {
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisHistoryItem | null>(null);
   const translateY = useSharedValue(0);
+
+  React.useEffect(() => {
+    if (initialSelectedAnalysisId && history.length > 0) {
+      const found = history.find(a => a.id === initialSelectedAnalysisId);
+      if (found) setSelectedAnalysis(found);
+    }
+  }, [initialSelectedAnalysisId, history]);
 
   const handleClose = () => {
     translateY.value = 0;

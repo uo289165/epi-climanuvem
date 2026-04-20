@@ -27,6 +27,7 @@ export const useHome = () => {
     }, [])
   );
 
+
   const handleLogout = async () => {
     await AuthService.logout();
     router.replace('/');

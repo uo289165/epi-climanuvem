@@ -10,10 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.friede.climanuvem"
+      "bundleIdentifier": "com.friede.climanuvem",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.friede.climanuvem",
+      "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

@@ -14,9 +14,9 @@ export interface AnalysisHistoryItem {
 }
 
 export class AnalysisService {
-  static async uploadImage(imageUri: string, locationStr: string) {
+  static async uploadImage(imageUri: string, locationStr: string, fcmToken?: string) {
     try {
-      return await BackendService.uploadImage(imageUri, locationStr);
+      return await BackendService.uploadImage(imageUri, locationStr, fcmToken);
     } catch (error) {
       console.error('Error uploading image to backend:', error);
       throw error;

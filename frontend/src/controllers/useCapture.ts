@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { AnalysisService } from '@/src/services/AnalysisService';
+import { NotificationService } from '@/src/services/NotificationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const useCapture = () => {
@@ -10,18 +11,19 @@ export const useCapture = () => {
   // Estado para el modal de estado
   const [modalVisible, setModalVisible] = useState(false);
   const [modalConfig, setModalConfig] = useState<{
-    type: 'loading' | 'success' | 'error' | 'info';
+    type: 'loading' | 'success' | 'error' | 'info' | 'confirm';
     title: string;
     message: string;
     onClose?: () => void;
+    onCancel?: () => void;
   }>({
     type: 'loading',
     title: '',
     message: '',
   });
 
-  const showModal = (type: 'loading' | 'success' | 'error' | 'info', title: string, message: string, onClose?: () => void) => {
-    setModalConfig({ type, title, message, onClose });
+  const showModal = (type: 'loading' | 'success' | 'error' | 'info' | 'confirm', title: string, message: string, onClose?: () => void, onCancel?: () => void) => {
+    setModalConfig({ type, title, message, onClose, onCancel });
     setModalVisible(true);
   };
 
@@ -88,6 +90,26 @@ export const useCapture = () => {
       return;
     }
 
+    const hasSeenPrompt = await AsyncStorage.getItem('hasSeenPermissionPrompt');
+    if (hasSeenPrompt) {
+      await continueProcessing(uri);
+    } else {
+      showModal(
+        'confirm',
+        'Mejor experiencia',
+        'Para el correcto funcionamiento de ClimaNuvem, necesitamos permiso de Ubicación (para saber dónde avistaste la nube) y Notificaciones (para avisarte cuando el análisis esté listo). ¿Deseas continuar?',
+        async () => {
+          await AsyncStorage.setItem('hasSeenPermissionPrompt', 'true');
+          await continueProcessing(uri);
+        },
+        () => {
+          hideModal();
+        }
+      );
+    }
+  };
+
+  const continueProcessing = async (uri: string) => {
     showModal('loading', 'Obteniendo ubicación...', 'Por favor espera...');
     let locationStr = "Ubicación desconocida";
     try {
@@ -122,13 +144,21 @@ export const useCapture = () => {
       console.log("Error obteniendo ubicación:", e);
     }
 
+    showModal('loading', 'Preparando envío...', 'Obteniendo notificaciones de la sesión...');
+    let fcmToken: string | undefined;
+    try {
+      fcmToken = await NotificationService.getPushTokenAsync();
+    } catch (e) {
+      console.log('Error obtaining FCM token', e);
+    }
+
     showModal('loading', 'Subiendo imagen...', 'Esto puede tardar unos segundos');
     try {
-      await AnalysisService.uploadImage(uri, locationStr);
+      await AnalysisService.uploadImage(uri, locationStr, fcmToken);
       showModal(
         'success',
         'Imagen enviada',
-        'La imagen está siendo analizada. Te redirigiremos a la pantalla principal.',
+        'Te notificaremos automáticamente cuando se termine el análisis y será guardado en tu historial.',
         () => {
           hideModal();
           router.back();

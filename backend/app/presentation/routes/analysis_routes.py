@@ -15,9 +15,9 @@ router = APIRouter()
 
 USER_ID_NOT_FOUND_MSG = "User ID not found in token"
 
-async def process_analysis_task(analysis_id: int, file_path: str):
+async def process_analysis_task(analysis_id: int, file_path: str, fcm_token: str = ""):
     service = AnalysisService()
-    await service.process_image(analysis_id, file_path)
+    await service.process_image(analysis_id, file_path, fcm_token)
 
 @router.post("/upload", responses={401: {"description": "Unauthorized"}})
 async def upload_image(
@@ -25,7 +25,8 @@ async def upload_image(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
     file: Annotated[UploadFile, File(...)],
-    location: Annotated[str, Form()] = "Ubicación desconocida"
+    location: Annotated[str, Form()] = "Ubicación desconocida",
+    fcm_token: Annotated[str, Form()] = ""
 ):
     uid = user.get("uid")
     if not uid:
@@ -64,7 +65,7 @@ async def upload_image(
     
     db.commit()
     
-    background_tasks.add_task(process_analysis_task, analysis_id, file_path)
+    background_tasks.add_task(process_analysis_task, analysis_id, file_path, fcm_token)
     
     return {
         "message": "Imagen recibida correctamente. Iniciando análisis...",

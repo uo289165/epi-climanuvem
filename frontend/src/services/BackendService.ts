@@ -3,6 +3,7 @@ import { auth } from '@/src/config/firebaseConfig';
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export const BackendService = {
+
   /**
    * Realiza una petición GET al endpoint de prueba del backend.
    * Requiere que el usuario esté autenticado para enviar el token ID.
@@ -54,22 +55,19 @@ export const BackendService = {
    * Sube una imagen para su análisis con su ubicación.
    * Requiere autenticación.
    */
-  uploadImage: async (imageUri: string, locationStr: string) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-
+  uploadImage: async (imageUri: string, locationStr: string, fcmToken?: string) => {
     try {
       const user = auth.currentUser;
       if (!user) {
         throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
       }
-
       const token = await user.getIdToken(true);
       
       const formData = new FormData();
       const filename = imageUri.split('/').pop() || 'photo.jpg';
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image`;
+      let type = match ? `image/${match[1]}` : `image/jpeg`;
+      if (type === 'image/jpg') type = 'image/jpeg'; // Android compatibility
 
       formData.append('file', {
         uri: imageUri,
@@ -78,18 +76,19 @@ export const BackendService = {
       } as any);
 
       formData.append('location', locationStr);
+      
+      if (fcmToken) {
+        formData.append('fcm_token', fcmToken);
+      }
 
       const response = await fetch(`${BACKEND_URL}/analysis/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
           // Fetch sets Content-Type automatically for FormData boundary
         },
         body: formData,
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
@@ -98,10 +97,6 @@ export const BackendService = {
 
       return await response.json();
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error('La petición excedió el tiempo de espera al subir la imagen.');
-      }
       console.error('Error en BackendService.uploadImage:', error);
       throw error;
     }
