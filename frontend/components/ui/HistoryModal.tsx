@@ -106,13 +106,15 @@ interface HistoryContentProps {
   history: AnalysisHistoryItem[];
   selectedAnalysis: AnalysisHistoryItem | null;
   setSelectedAnalysis: (item: AnalysisHistoryItem | null) => void;
+  onRefresh?: () => void;
 }
 
 const HistoryContent = ({ 
   loading, 
   history, 
   selectedAnalysis, 
-  setSelectedAnalysis 
+  setSelectedAnalysis,
+  onRefresh
 }: HistoryContentProps) => {
   if (loading) {
     return (
@@ -128,6 +130,10 @@ const HistoryContent = ({
       <AnalysisDetail 
         analysis={selectedAnalysis} 
         onBack={() => setSelectedAnalysis(null)} 
+        onDeleteSuccess={() => {
+          setSelectedAnalysis(null);
+          onRefresh?.();
+        }}
       />
     );
   }
@@ -209,7 +215,13 @@ export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, in
       visible={visible}
       animationType="slide"
       transparent={true}
-      onRequestClose={handleClose}
+      onRequestClose={() => {
+        if (selectedAnalysis) {
+          setSelectedAnalysis(null);
+        } else {
+          handleClose();
+        }
+      }}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Animated.View style={[styles.overlay, backdropStyle]}>
@@ -240,6 +252,7 @@ export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, in
               history={history}
               selectedAnalysis={selectedAnalysis}
               setSelectedAnalysis={setSelectedAnalysis}
+              onRefresh={onRefresh}
             />
           </Animated.View>
         </Animated.View>

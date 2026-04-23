@@ -94,8 +94,13 @@ def _update_analysis_results(res: dict, row):
     if row.forecast and row.forecast not in res["forecast"]:
         res["forecast"] = (res["forecast"] + " " + row.forecast).strip()
         
-    if row.warning and row.warning not in res["warnings"]:
-        res["warnings"].append(row.warning)
+    if getattr(row, 'warning', None):
+        warning_exists = any(w.get("text") == row.warning for w in res["warnings"])
+        if not warning_exists:
+            res["warnings"].append({
+                "text": row.warning,
+                "level": getattr(row, "warning_level", 0)
+            })
 
 @router.get("/history", responses={401: {"description": "Unauthorized"}})
 def get_analysis_history(
@@ -115,7 +120,8 @@ def get_analysis_history(
             a.image_path,
             c.name as cloud_type,
             c.forecast,
-            c.warning
+            c.warning,
+            c.warning_level
         FROM analysis a
         LEFT JOIN analysis_cloud ac ON a.id = ac.analysis_id
         LEFT JOIN clouds c ON ac.cloud_id = c.id
@@ -174,3 +180,28 @@ def delete_user_data(
     db.commit()
     
     return {"message": "Datos de usuario eliminados correctamente."}
+
+@router.delete("/{analysis_id}", responses={401: {"description": "Unauthorized"}, 404: {"description": "Not Found"}})
+def delete_single_analysis(
+    analysis_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    uid = user.get("uid")
+    if not uid:
+        raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
+
+    query = text("SELECT id, image_path FROM analysis WHERE id = :id AND uid = :uid")
+    analysis = db.execute(query, {"id": analysis_id, "uid": uid}).fetchone()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+        
+    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads")
+    _remove_analysis_file(analysis.image_path, uploads_dir)
+    
+    db.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": analysis_id})
+    db.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": analysis_id})
+    db.commit()
+    
+    return {"message": "Análisis eliminado correctamente."}

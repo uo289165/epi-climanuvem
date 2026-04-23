@@ -9,7 +9,7 @@ export interface AnalysisHistoryItem {
   results?: {
     cloudTypes: string[];
     forecast: string;
-    warnings: string[];
+    warnings: { text: string; level: number }[];
   };
 }
 
@@ -19,6 +19,15 @@ export class AnalysisService {
       return await BackendService.uploadImage(imageUri, locationStr, fcmToken);
     } catch (error) {
       console.error('Error uploading image to backend:', error);
+      throw error;
+    }
+  }
+
+  static async deleteAnalysis(analysisId: string) {
+    try {
+      return await BackendService.deleteAnalysis(analysisId);
+    } catch (error) {
+      console.error('Error deleting analysis:', error);
       throw error;
     }
   }

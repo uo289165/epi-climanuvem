@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Alert,
   View,
   StyleSheet,
   Text,
@@ -7,14 +8,26 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AnalysisHistoryItem } from '@/src/services/AnalysisService';
+import { AnalysisHistoryItem, AnalysisService } from '@/src/services/AnalysisService';
 
 interface AnalysisDetailProps {
   analysis: AnalysisHistoryItem;
   onBack: () => void;
+  onDeleteSuccess?: () => void;
 }
+
+const getWarningLevelColor = (level: number) => {
+  switch (level) {
+    case 0: return '#546E7A'; // Info (Gris Azulado)
+    case 1: return '#FF9800'; // Aviso (Naranja)
+    case 2: return '#F44336'; // Peligro (Rojo Claro)
+    case 3: return '#B71C1C'; // Crítico (Rojo Oscuro)
+    default: return '#F44336';
+  }
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -89,12 +102,18 @@ const AnalysisResults = ({ analysis, styles }: { analysis: AnalysisHistoryItem, 
         {analysis.results?.warnings && analysis.results.warnings.length > 0 && (
           <View style={styles.resultItem}>
             <Text style={[styles.resultLabel, { color: '#F44336' }]}>Advertencias:</Text>
-            {analysis.results.warnings.map((warning) => (
-              <View key={`${analysis.id}-warning-${warning}`} style={styles.warningRow}>
-                <Ionicons name="warning" size={16} color="#F44336" />
-                <Text style={styles.warningText}>{warning}</Text>
-              </View>
-            ))}
+            {analysis.results.warnings.map((warning, index) => {
+              const text = typeof warning === 'string' ? warning : warning.text;
+              const level = typeof warning === 'string' ? 0 : warning.level;
+              const color = getWarningLevelColor(level);
+
+              return (
+                <View key={`${analysis.id}-warning-${index}`} style={styles.warningRow}>
+                  <Ionicons name="warning" size={16} color={color} />
+                  <Text style={[styles.warningText, { color }]}>{text}</Text>
+                </View>
+              );
+            })}
           </View>
         )}
       </View>
@@ -104,15 +123,42 @@ const AnalysisResults = ({ analysis, styles }: { analysis: AnalysisHistoryItem, 
   return <Text style={styles.noResultsText}>No hay resultados disponibles.</Text>;
 };
 
-export const AnalysisDetail = ({ analysis, onBack }: AnalysisDetailProps) => {
+export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDetailProps) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const executeDelete = async () => {
+    setShowConfirmModal(false);
+    setIsDeleting(true);
+    try {
+      await AnalysisService.deleteAnalysis(analysis.id);
+      onDeleteSuccess?.();
+    } catch (error) {
+      console.error("Error al eliminar el análisis:", error);
+      Alert.alert("Error", "No se pudo eliminar el análisis.");
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeletePress = () => {
+    setShowConfirmModal(true);
+  };
+
   return (
     <View style={styles.detailContainer}>
       <View style={styles.detailHeader}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} disabled={isDeleting}>
           <Ionicons name="arrow-back" size={24} color="#333" />
           <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
         <Text style={styles.detailTitle}>Detalles</Text>
+        <TouchableOpacity onPress={handleDeletePress} style={styles.deleteButton} disabled={isDeleting}>
+          {isDeleting ? (
+             <ActivityIndicator size="small" color="#F44336" />
+          ) : (
+             <Ionicons name="trash-outline" size={24} color="#F44336" />
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.detailContent}>
@@ -151,9 +197,24 @@ export const AnalysisDetail = ({ analysis, onBack }: AnalysisDetailProps) => {
           <Text style={styles.sectionTitle}>Resultados del Análisis</Text>
           <AnalysisResults analysis={analysis} styles={styles} />
         </View>
-        
-        <Text style={styles.todoText}>[TODO: Implementación final de resultados]</Text>
       </ScrollView>
+
+      <Modal visible={showConfirmModal} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <Text style={styles.confirmTitle}>Eliminar análisis</Text>
+            <Text style={styles.confirmText}>¿Estás seguro de que deseas eliminar este análisis del historial?</Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowConfirmModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteBtn} onPress={executeDelete}>
+                <Text style={styles.deleteBtnText}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -166,6 +227,7 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
     minHeight: 64,
@@ -313,7 +375,6 @@ const styles = StyleSheet.create({
   warningText: {
     marginLeft: 8,
     fontSize: 15,
-    color: '#D32F2F',
     fontWeight: '500',
   },
   noResultsText: {
@@ -321,10 +382,66 @@ const styles = StyleSheet.create({
     color: '#888',
     fontStyle: 'italic',
   },
-  todoText: {
-    textAlign: 'center',
-    color: '#AAA',
-    fontSize: 12,
-    marginTop: 8,
+  deleteButton: {
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  confirmModal: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  confirmTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  confirmText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 28,
+    lineHeight: 24,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+  },
+  cancelBtnText: {
+    color: '#333',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  deleteBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F44336',
+  },
+  deleteBtnText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
