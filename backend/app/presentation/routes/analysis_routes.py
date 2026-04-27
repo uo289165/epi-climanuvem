@@ -3,29 +3,27 @@ import uuid
 import asyncio
 import anyio
 from typing import Annotated, List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.presentation.dependencies.auth_dependency import get_current_user
 from app.infrastructure.database.database import get_db, engine
 from app.business.analysis_service import AnalysisService
+from app.infrastructure.queue import analysis_queue, AnalysisTask
 
 router = APIRouter()
 
 USER_ID_NOT_FOUND_MSG = "User ID not found in token"
 
-async def process_analysis_task(analysis_id: int, file_path: str, fcm_token: str = ""):
-    service = AnalysisService()
-    await service.process_image(analysis_id, file_path, fcm_token)
-
 @router.post("/upload", responses={401: {"description": "Unauthorized"}})
 async def upload_image(
-    background_tasks: BackgroundTasks,
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
     file: Annotated[UploadFile, File(...)],
     location: Annotated[str, Form()] = "Ubicación desconocida",
+    latitude: Annotated[float | None, Form()] = None,
+    longitude: Annotated[float | None, Form()] = None,
     fcm_token: Annotated[str, Form()] = ""
 ):
     uid = user.get("uid")
@@ -51,21 +49,24 @@ async def upload_image(
     is_anon = firebase_claim.get("sign_in_provider") == "anonymous"
     
     insert_analysis_query = text("""
-        INSERT INTO analysis (uid, image_path, location, is_anon, status)
-        VALUES (:uid, :image_path, :location, :is_anon, 'analyzing')
+        INSERT INTO analysis (uid, image_path, location, latitude, longitude, is_anon, status)
+        VALUES (:uid, :image_path, :location, :latitude, :longitude, :is_anon, 'analyzing')
         RETURNING id
     """)
     result = db.execute(insert_analysis_query, {
         "uid": uid,
         "image_path": image_db_path,
         "location": location,
+        "latitude": latitude,
+        "longitude": longitude,
         "is_anon": is_anon
     })
     analysis_id = result.scalar()
     
     db.commit()
     
-    background_tasks.add_task(process_analysis_task, analysis_id, file_path, fcm_token)
+    task = AnalysisTask(analysis_id=analysis_id, file_path=file_path, fcm_token=fcm_token)
+    await analysis_queue.put(task)
     
     return {
         "message": "Imagen recibida correctamente. Iniciando análisis...",
@@ -77,8 +78,10 @@ def _initialize_analysis_record(row, analysis_id: str) -> dict:
     return {
         "id": analysis_id,
         "status": row.status,
-        "date": row.datetime.isoformat() if row.datetime else None,
+        "date": row.datetime.isoformat() + "Z" if row.datetime else None,
         "location": row.location or "Ubicación desconocida",
+        "latitude": row.latitude,
+        "longitude": row.longitude,
         "imageUrl": row.image_path or "https://picsum.photos/id/1015/800/600",  # Placeholder para testing
         "results": {
             "cloudTypes": [],
@@ -117,6 +120,8 @@ def get_analysis_history(
             a.status, 
             a.datetime, 
             a.location, 
+            a.latitude,
+            a.longitude,
             a.image_path,
             c.name as cloud_type,
             c.forecast,
@@ -205,3 +210,27 @@ def delete_single_analysis(
     db.commit()
     
     return {"message": "Análisis eliminado correctamente."}
+
+@router.patch("/{analysis_id}/cancel", responses={400: {"description": "Bad Request"}, 401: {"description": "Unauthorized"}, 404: {"description": "Not Found"}})
+def cancel_analysis(
+    analysis_id: int,
+    user: Annotated[dict, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)]
+):
+    uid = user.get("uid")
+    if not uid:
+        raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
+
+    query = text("SELECT id, status FROM analysis WHERE id = :id AND uid = :uid")
+    analysis = db.execute(query, {"id": analysis_id, "uid": uid}).fetchone()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+        
+    if analysis.status != 'analyzing':
+        raise HTTPException(status_code=400, detail="Only 'analyzing' tasks can be cancelled")
+        
+    db.execute(text("UPDATE analysis SET status = 'cancelled' WHERE id = :id"), {"id": analysis_id})
+    db.commit()
+    
+    return {"message": "Análisis cancelado correctamente."}

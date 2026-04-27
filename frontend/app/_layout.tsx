@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemeProvider as CustomThemeProvider } from '@/src/contexts/ThemeContext';
 
 import * as SystemUI from 'expo-system-ui';
 
@@ -44,25 +45,27 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: 'slide_from_right',
-              animationTypeForReplace: 'push',
-              contentStyle: { backgroundColor: '#f8f9fa' },
-              // @ts-ignore
-              detachPreviousScreen: false,
-            } as any}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="register" />
-            <Stack.Screen name="capture" />
-            <Stack.Screen name="home" options={{ gestureEnabled: false }} />
-            <Stack.Screen name="profile" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
+        <CustomThemeProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'slide_from_right',
+                animationTypeForReplace: 'push',
+                contentStyle: { backgroundColor: '#f8f9fa' },
+                // @ts-ignore
+                detachPreviousScreen: false,
+              } as any}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="login" />
+              <Stack.Screen name="register" />
+              <Stack.Screen name="capture" />
+              <Stack.Screen name="home" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="profile" />
+            </Stack>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </CustomThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useTheme } from '@/src/contexts/ThemeContext';
+import { getAuthViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
 import { AuthInput } from '@/components/ui/AuthInput';
 import { AuthButton } from '@/components/ui/AuthButton';
@@ -49,6 +51,9 @@ export function AuthView({ controller }: AuthViewProps) {
     modalConfig,
     hideModal
   } = controller;
+
+  const { theme } = useTheme();
+  const styles = getAuthViewStyles(theme);
 
   return (
     <KeyboardAvoidingView 
@@ -133,64 +138,4 @@ export function AuthView({ controller }: AuthViewProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  headerSection: {
-    marginTop: 20,
-    marginBottom: 40,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-    lineHeight: 22,
-  },
-  formContainer: {
-    width: '100%',
-  },
-  actionsContainer: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  resetButton: {
-    borderWidth: 0,
-    shadowOpacity: 0,
-    elevation: 0,
-    marginBottom: 20,
-  },
-  resetText: {
-    fontSize: 15,
-    textDecorationLine: 'underline',
-    color: '#666',
-    fontWeight: '500',
-  },
-  registerLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  noAccountText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  linkText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+

@@ -1,5 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { useTheme } from '@/src/contexts/ThemeContext';
+import { getAuthButtonStyles } from '@/src/styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 
 interface AuthButtonProps {
@@ -23,12 +25,15 @@ export const AuthButton = ({
   textStyle,
   disabled 
 }: AuthButtonProps) => {
+  const { theme } = useTheme();
+  const styles = getAuthButtonStyles(theme);
+
   const isGoogle = variant === 'google';
   const isOutline = variant === 'outline';
 
   const getIconColor = () => {
     if (isGoogle) return '#db4437';
-    if (isOutline) return '#007AFF';
+    if (isOutline) return theme.colors.primary;
     return 'white';
   };
 
@@ -44,7 +49,7 @@ export const AuthButton = ({
       disabled={loading || disabled}
     >
       {loading ? (
-        <ActivityIndicator color={isGoogle || isOutline ? '#007AFF' : 'white'} />
+        <ActivityIndicator color={isGoogle || isOutline ? theme.colors.primary : 'white'} />
       ) : (
         <>
           {icon && (
@@ -69,51 +74,4 @@ export const AuthButton = ({
   );
 };
 
-const styles = StyleSheet.create({
-  button: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  primary: {
-    backgroundColor: '#007AFF',
-  },
-  secondary: {
-    backgroundColor: '#34C759',
-  },
-  google: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  text: {
-    color: 'white',
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  googleText: {
-    color: '#333',
-  },
-  outlineText: {
-    color: '#007AFF',
-  },
-  icon: {
-    marginRight: 10,
-  },
-});
+

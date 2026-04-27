@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, Text, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { useTheme } from '@/src/contexts/ThemeContext';
+import { getProfileViewStyles } from '@/src/styles/globalStyles';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AuthButton } from '@/components/ui/AuthButton';
 import { StatusModal, ModalType } from '@/components/ui/StatusModal';
@@ -49,6 +51,9 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
     closeModal,
   } = controller;
 
+  const { theme, themeMode, setThemeMode } = useTheme();
+  const styles = getProfileViewStyles(theme);
+
   const hasNameChanged = newName.trim() !== userName && newName.trim().length > 0;
 
   return (
@@ -58,7 +63,7 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
-            <Ionicons name="person" size={48} color="#007AFF" />
+            <Ionicons name="person" size={48} color={theme.colors.primary} />
           </View>
           <ThemedText style={styles.emailText}>{userEmail}</ThemedText>
         </View>
@@ -84,6 +89,47 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
           </View>
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Apariencia</Text>
+          <Text style={styles.warningText}>
+            Personaliza el tema de la aplicación.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity 
+              style={[
+                styles.themeButton, 
+                themeMode === 'light' && styles.themeButtonActive
+              ]} 
+              onPress={() => setThemeMode('light')}
+            >
+              <Ionicons name="sunny-outline" size={18} color={themeMode === 'light' ? theme.colors.primary : theme.colors.textSecondary} />
+              <Text style={[styles.themeButtonText, themeMode === 'light' && { color: theme.colors.primary }]}>Claro</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[
+                styles.themeButton, 
+                themeMode === 'dark' && styles.themeButtonActive
+              ]} 
+              onPress={() => setThemeMode('dark')}
+            >
+              <Ionicons name="moon-outline" size={18} color={themeMode === 'dark' ? theme.colors.primary : theme.colors.textSecondary} />
+              <Text style={[styles.themeButtonText, themeMode === 'dark' && { color: theme.colors.primary }]}>Oscuro</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[
+                styles.themeButton, 
+                themeMode === 'system' && styles.themeButtonActive
+              ]} 
+              onPress={() => setThemeMode('system')}
+            >
+              <Ionicons name="phone-portrait-outline" size={18} color={themeMode === 'system' ? theme.colors.primary : theme.colors.textSecondary} />
+              <Text style={[styles.themeButtonText, themeMode === 'system' && { color: theme.colors.primary }]}>Sistema</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={[styles.card, styles.dangerCard]}>
           <Text style={[styles.sectionTitle, styles.dangerText]}>Zona de peligro</Text>
           <Text style={styles.warningText}>
@@ -105,7 +151,7 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalIconContainer}>
-              <Ionicons name="warning" size={40} color="#F44336" />
+              <Ionicons name="warning" size={40} color={theme.colors.danger} />
             </View>
             <Text style={styles.modalTitle}>¿Eliminar cuenta?</Text>
             <Text style={styles.modalBody}>
@@ -134,157 +180,4 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f0f2f5',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 10,
-  },
-  avatarCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  emailText: {
-    fontSize: 15,
-    color: '#666',
-    fontWeight: '500',
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
-  },
-  input: {
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 16,
-  },
-  saveAction: {
-    alignItems: 'flex-end',
-  },
-  dangerCard: {
-    borderColor: '#FFCDD2',
-    borderWidth: 1,
-  },
-  dangerText: {
-    color: '#D32F2F',
-  },
-  warningText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  dangerButton: {
-    backgroundColor: '#F44336',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  dangerButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    maxWidth: 340,
-    alignItems: 'center',
-  },
-  modalIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FFEBEE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  modalBody: {
-    fontSize: 15,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    marginRight: 8,
-    borderRadius: 10,
-    backgroundColor: '#F8F9FA',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#555',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  confirmDeleteButton: {
-    flex: 1,
-    paddingVertical: 14,
-    marginLeft: 8,
-    borderRadius: 10,
-    backgroundColor: '#F44336',
-    alignItems: 'center',
-  },
-  confirmDeleteButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-});
+

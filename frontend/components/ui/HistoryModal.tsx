@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Modal,
   View,
-  StyleSheet,
   Text,
   TouchableOpacity,
   FlatList,
@@ -20,6 +19,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
+import { useTheme } from '@/src/contexts/ThemeContext';
+import { getHistoryModalStyles } from '@/src/styles/globalStyles';
+import { getStatusColor, getStatusText } from '@/src/utils/statusUtils';
 
 interface HistoryModalProps {
   visible: boolean;
@@ -30,37 +32,17 @@ interface HistoryModalProps {
   initialSelectedAnalysisId?: string | null;
 }
 
-const HandleBar = () => (
-  <View style={styles.handleContainer}>
-    <View style={styles.handle} />
-  </View>
-);
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return '#4CAF50';
-    case 'analyzing':
-      return '#2196F3';
-    case 'cancelled':
-      return '#F44336';
-    default:
-      return '#9E9E9E';
-  }
+const HandleBar = () => {
+  const { theme } = useTheme();
+  const styles = getHistoryModalStyles(theme);
+  return (
+    <View style={styles.handleContainer}>
+      <View style={styles.handle} />
+    </View>
+  );
 };
 
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return 'Completado';
-    case 'analyzing':
-      return 'En progreso';
-    case 'cancelled':
-      return 'Cancelado';
-    default:
-      return status;
-  }
-};
+
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -73,33 +55,47 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const RenderHistoryItem = ({ item, onSelect }: { item: AnalysisHistoryItem, onSelect: (item: AnalysisHistoryItem) => void }) => (
-  <TouchableOpacity 
-    style={styles.historyItem} 
-    onPress={() => onSelect(item)}
-  >
-    <View style={styles.itemHeader}>
-      <View style={styles.statusContainer}>
-        <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-        <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-          {getStatusText(item.status)}
-        </Text>
-      </View>
-      <Text style={styles.dateText}>{formatDate(item.date)}</Text>
-    </View>
-    <View style={styles.itemFooter}>
-      {item.location && (
-        <View style={styles.locationContainer}>
-          <Ionicons name="location-outline" size={14} color="#666" />
-          <Text style={styles.locationText}>{item.location}</Text>
+const RenderHistoryItem = ({ item, onSelect }: { item: AnalysisHistoryItem, onSelect: (item: AnalysisHistoryItem) => void }) => {
+  const { theme } = useTheme();
+  const styles = getHistoryModalStyles(theme);
+  
+  return (
+    <TouchableOpacity 
+      style={styles.historyItem} 
+      onPress={() => onSelect(item)}
+    >
+      <View style={styles.itemHeader}>
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status, theme) }]} />
+          <Text style={[styles.statusText, { color: getStatusColor(item.status, theme) }]}>
+            {getStatusText(item.status)}
+          </Text>
         </View>
-      )}
-      <Ionicons name="chevron-forward" size={16} color="#CCC" />
-    </View>
-  </TouchableOpacity>
-);
+        <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+      </View>
+      <View style={styles.itemFooter}>
+        <View style={styles.locationContainer}>
+          {item.location && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
+              <Text style={styles.locationText}>{item.location}</Text>
+            </View>
+          )}
+          {item.latitude != null && item.longitude != null && (
+            <Text style={styles.coordsText}>Lat: {item.latitude.toFixed(4)}, Lng: {item.longitude.toFixed(4)}</Text>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.border} />
+      </View>
+    </TouchableOpacity>
+  );
+};
 
-const Separator = () => <View style={styles.separator} />;
+const Separator = () => {
+  const { theme } = useTheme();
+  const styles = getHistoryModalStyles(theme);
+  return <View style={styles.separator} />;
+};
 
 interface HistoryContentProps {
   loading: boolean;
@@ -116,10 +112,13 @@ const HistoryContent = ({
   setSelectedAnalysis,
   onRefresh
 }: HistoryContentProps) => {
+  const { theme } = useTheme();
+  const styles = getHistoryModalStyles(theme);
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Cargando historial...</Text>
       </View>
     );
@@ -141,7 +140,7 @@ const HistoryContent = ({
   if (history.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="list-outline" size={48} color="#CCC" />
+        <Ionicons name="list-outline" size={48} color={theme.colors.border} />
         <Text style={styles.emptyText}>No hay análisis realizados todavía.</Text>
       </View>
     );
@@ -159,6 +158,9 @@ const HistoryContent = ({
 };
 
 export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, initialSelectedAnalysisId }: HistoryModalProps) => {
+  const { theme } = useTheme();
+  const styles = getHistoryModalStyles(theme);
+  
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisHistoryItem | null>(null);
   const translateY = useSharedValue(0);
 
@@ -235,11 +237,11 @@ export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, in
                     <View style={styles.headerActions}>
                       {onRefresh && (
                         <TouchableOpacity onPress={onRefresh} style={styles.actionButton} disabled={loading}>
-                          <Ionicons name="refresh" size={24} color={loading ? "#999" : "#333"} />
+                          <Ionicons name="refresh" size={24} color={loading ? theme.colors.textSecondary : theme.colors.text} />
                         </TouchableOpacity>
                       )}
                       <TouchableOpacity onPress={onClose} style={styles.actionButton}>
-                        <Ionicons name="close" size={24} color="#333" />
+                        <Ionicons name="close" size={24} color={theme.colors.text} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -260,123 +262,3 @@ export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, in
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    height: '90%',
-    paddingBottom: 20,
-    overflow: 'hidden',
-  },
-  header: {
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  gestureHeader: {
-    width: '100%',
-    backgroundColor: 'white',
-    // We keep this area as the handle for closing the modal
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  actionButton: {
-    padding: 8,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#666',
-    fontSize: 16,
-  },
-  emptyText: {
-    marginTop: 12,
-    color: '#999',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  listContent: {
-    padding: 24,
-  },
-  historyItem: {
-    paddingVertical: 16,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
-  },
-  statusText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  dateText: {
-    fontSize: 13,
-    color: '#888',
-  },
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  locationText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
-  },
-  handleContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  handle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#E0E0E0',
-  },
-});

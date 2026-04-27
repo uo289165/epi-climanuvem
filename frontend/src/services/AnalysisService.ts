@@ -5,6 +5,8 @@ export interface AnalysisHistoryItem {
   status: 'completed' | 'analyzing' | 'cancelled';
   date: string;
   location?: string;
+  latitude?: number;
+  longitude?: number;
   imageUrl?: string;
   results?: {
     cloudTypes: string[];
@@ -14,9 +16,9 @@ export interface AnalysisHistoryItem {
 }
 
 export class AnalysisService {
-  static async uploadImage(imageUri: string, locationStr: string, fcmToken?: string) {
+  static async uploadImage(imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string) {
     try {
-      return await BackendService.uploadImage(imageUri, locationStr, fcmToken);
+      return await BackendService.uploadImage(imageUri, locationStr, latitude, longitude, fcmToken);
     } catch (error) {
       console.error('Error uploading image to backend:', error);
       throw error;
@@ -28,6 +30,15 @@ export class AnalysisService {
       return await BackendService.deleteAnalysis(analysisId);
     } catch (error) {
       console.error('Error deleting analysis:', error);
+      throw error;
+    }
+  }
+
+  static async cancelAnalysis(analysisId: string) {
+    try {
+      return await BackendService.cancelAnalysis(analysisId);
+    } catch (error) {
+      console.error('Error cancelling analysis:', error);
       throw error;
     }
   }

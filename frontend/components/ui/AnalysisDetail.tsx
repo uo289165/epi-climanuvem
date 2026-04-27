@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Alert,
   View,
-  StyleSheet,
   Text,
   TouchableOpacity,
   ActivityIndicator,
@@ -12,6 +11,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnalysisHistoryItem, AnalysisService } from '@/src/services/AnalysisService';
+import { useTheme } from '@/src/contexts/ThemeContext';
+import { getAnalysisDetailStyles } from '@/src/styles/globalStyles';
+import { getStatusColor, getStatusText } from '@/src/utils/statusUtils';
 
 interface AnalysisDetailProps {
   analysis: AnalysisHistoryItem;
@@ -19,39 +21,13 @@ interface AnalysisDetailProps {
   onDeleteSuccess?: () => void;
 }
 
-const getWarningLevelColor = (level: number) => {
+const getWarningLevelColor = (level: number, theme: any) => {
   switch (level) {
-    case 0: return '#546E7A'; // Info (Gris Azulado)
-    case 1: return '#FF9800'; // Aviso (Naranja)
-    case 2: return '#F44336'; // Peligro (Rojo Claro)
-    case 3: return '#B71C1C'; // Crítico (Rojo Oscuro)
-    default: return '#F44336';
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return '#4CAF50';
-    case 'analyzing':
-      return '#2196F3';
-    case 'cancelled':
-      return '#F44336';
-    default:
-      return '#9E9E9E';
-  }
-};
-
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return 'Completado';
-    case 'analyzing':
-      return 'En progreso';
-    case 'cancelled':
-      return 'Cancelado';
-    default:
-      return status;
+    case 0: return '#546E7A'; // Info
+    case 1: return theme.colors.warning; // Aviso
+    case 2: return theme.colors.danger; // Peligro
+    case 3: return '#B71C1C'; // Crítico
+    default: return theme.colors.danger;
   }
 };
 
@@ -66,12 +42,17 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const AnalysisResults = ({ analysis, styles }: { analysis: AnalysisHistoryItem, styles: any }) => {
+const AnalysisResults = ({ analysis, styles, theme, onCancel }: { analysis: AnalysisHistoryItem, styles: any, theme: any, onCancel: () => void }) => {
   if (analysis.status === 'analyzing') {
     return (
       <View style={styles.processingContainer}>
-        <ActivityIndicator size="small" color="#2196F3" />
-        <Text style={styles.processingText}>El análisis sigue en progreso...</Text>
+        <View style={styles.processingRow}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={styles.processingText}>El análisis sigue en progreso...</Text>
+        </View>
+        <TouchableOpacity style={styles.cancelAnalysisBtn} onPress={onCancel}>
+          <Text style={styles.cancelAnalysisBtnText}>Cancelar Análisis</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -101,11 +82,11 @@ const AnalysisResults = ({ analysis, styles }: { analysis: AnalysisHistoryItem, 
 
         {analysis.results?.warnings && analysis.results.warnings.length > 0 && (
           <View style={styles.resultItem}>
-            <Text style={[styles.resultLabel, { color: '#F44336' }]}>Advertencias:</Text>
+            <Text style={[styles.resultLabel, { color: theme.colors.danger }]}>Advertencias:</Text>
             {analysis.results.warnings.map((warning, index) => {
               const text = typeof warning === 'string' ? warning : warning.text;
               const level = typeof warning === 'string' ? 0 : warning.level;
-              const color = getWarningLevelColor(level);
+              const color = getWarningLevelColor(level, theme);
 
               return (
                 <View key={`${analysis.id}-warning-${index}`} style={styles.warningRow}>
@@ -124,8 +105,12 @@ const AnalysisResults = ({ analysis, styles }: { analysis: AnalysisHistoryItem, 
 };
 
 export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDetailProps) => {
+  const { theme } = useTheme();
+  const styles = getAnalysisDetailStyles(theme);
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const executeDelete = async () => {
     setShowConfirmModal(false);
@@ -140,6 +125,19 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
     }
   };
 
+  const executeCancel = async () => {
+    setShowCancelModal(false);
+    setIsDeleting(true); // Re-use loading state to block actions
+    try {
+      await AnalysisService.cancelAnalysis(analysis.id);
+      onDeleteSuccess?.(); // Go back and refresh since state changed
+    } catch (error) {
+      console.error("Error al cancelar el análisis:", error);
+      Alert.alert("Error", "No se pudo cancelar el análisis.");
+      setIsDeleting(false);
+    }
+  };
+
   const handleDeletePress = () => {
     setShowConfirmModal(true);
   };
@@ -148,15 +146,15 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
     <View style={styles.detailContainer}>
       <View style={styles.detailHeader}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} disabled={isDeleting}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           <Text style={styles.backText}>Volver</Text>
         </TouchableOpacity>
         <Text style={styles.detailTitle}>Detalles</Text>
         <TouchableOpacity onPress={handleDeletePress} style={styles.deleteButton} disabled={isDeleting}>
           {isDeleting ? (
-             <ActivityIndicator size="small" color="#F44336" />
+             <ActivityIndicator size="small" color={theme.colors.danger} />
           ) : (
-             <Ionicons name="trash-outline" size={24} color="#F44336" />
+             <Ionicons name="trash-outline" size={24} color={theme.colors.danger} />
           )}
         </TouchableOpacity>
       </View>
@@ -171,10 +169,10 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
             />
           ) : (
             <View style={[styles.analysisImage, styles.placeholderImage]}>
-              <Ionicons name="image-outline" size={48} color="#CCC" />
+              <Ionicons name="image-outline" size={48} color={theme.colors.border} />
             </View>
           )}
-          <View style={[styles.detailStatusBadge, { backgroundColor: getStatusColor(analysis.status) }]}>
+          <View style={[styles.detailStatusBadge, { backgroundColor: getStatusColor(analysis.status, theme) }]}>
             <Text style={styles.detailStatusText}>{getStatusText(analysis.status)}</Text>
           </View>
         </View>
@@ -182,23 +180,35 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
         <View style={styles.infoSection}>
           <Text style={styles.sectionTitle}>Información General</Text>
           <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={18} color="#666" />
+            <Ionicons name="calendar-outline" size={18} color={theme.colors.textSecondary} />
             <Text style={styles.infoText}>{formatDate(analysis.date)}</Text>
           </View>
           {analysis.location && (
             <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={18} color="#666" />
+              <Ionicons name="location-outline" size={18} color={theme.colors.textSecondary} />
               <Text style={styles.infoText}>{analysis.location}</Text>
+            </View>
+          )}
+          {analysis.latitude != null && analysis.longitude != null && (
+            <View style={styles.infoRow}>
+              <Ionicons name="compass-outline" size={18} color={theme.colors.textSecondary} />
+              <Text style={styles.infoText}>Lat: {analysis.latitude.toFixed(4)}, Lng: {analysis.longitude.toFixed(4)}</Text>
             </View>
           )}
         </View>
 
         <View style={styles.resultsSection}>
           <Text style={styles.sectionTitle}>Resultados del Análisis</Text>
-          <AnalysisResults analysis={analysis} styles={styles} />
+          <AnalysisResults 
+            analysis={analysis} 
+            styles={styles} 
+            theme={theme}
+            onCancel={() => setShowCancelModal(true)}
+          />
         </View>
       </ScrollView>
 
+      {/* Delete Confirmation Modal */}
       <Modal visible={showConfirmModal} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.confirmModal}>
@@ -215,233 +225,24 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
           </View>
         </View>
       </Modal>
+
+      {/* Cancel Analysis Confirmation Modal */}
+      <Modal visible={showCancelModal} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <Text style={styles.confirmTitle}>Cancelar análisis</Text>
+            <Text style={styles.confirmText}>¿Deseas cancelar este análisis? Será retirado de la cola de procesamiento.</Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCancelModal(false)}>
+                <Text style={styles.cancelBtnText}>Volver</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteBtn} onPress={executeCancel}>
+                <Text style={styles.deleteBtnText}>Sí, Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  detailContainer: {
-    flex: 1,
-  },
-  detailHeader: {
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    minHeight: 64,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  backText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '600',
-  },
-  detailTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    zIndex: -1,
-  },
-  detailContent: {
-    padding: 24,
-  },
-  imageContainer: {
-    width: '100%',
-    height: 250,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 24,
-    backgroundColor: '#F5F5F5',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  analysisImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  detailStatusBadge: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  detailStatusText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  infoSection: {
-    marginBottom: 32,
-    backgroundColor: '#F9F9F9',
-    padding: 20,
-    borderRadius: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoText: {
-    marginLeft: 12,
-    fontSize: 15,
-    color: '#444',
-  },
-  resultsSection: {
-    marginBottom: 24,
-  },
-  processingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#E3F2FD',
-    borderRadius: 12,
-  },
-  processingText: {
-    marginLeft: 12,
-    color: '#1976D2',
-    fontSize: 15,
-  },
-  resultItem: {
-    marginBottom: 20,
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  resultLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#666',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  resultValue: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
-  },
-  tagContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 4,
-  },
-  tag: {
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  tagText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  warningRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  warningText: {
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  noResultsText: {
-    fontSize: 15,
-    color: '#888',
-    fontStyle: 'italic',
-  },
-  deleteButton: {
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  confirmModal: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  confirmTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  confirmText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 28,
-    lineHeight: 24,
-  },
-  confirmActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  cancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-  },
-  cancelBtnText: {
-    color: '#333',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  deleteBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#F44336',
-  },
-  deleteBtnText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-});

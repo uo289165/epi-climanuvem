@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useTheme } from '@/src/contexts/ThemeContext';
+import { getRegisterViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
 import { AuthInput } from '@/components/ui/AuthInput';
 import { AuthButton } from '@/components/ui/AuthButton';
@@ -61,6 +63,9 @@ export function RegisterView({ controller }: RegisterViewProps) {
     modalConfig,
     hideModal
   } = controller;
+
+  const { theme } = useTheme();
+  const styles = getRegisterViewStyles(theme);
 
   return (
     <KeyboardAvoidingView 
@@ -154,54 +159,4 @@ export function RegisterView({ controller }: RegisterViewProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  headerSection: {
-    marginTop: 10,
-    marginBottom: 30,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-    lineHeight: 22,
-  },
-  formContainer: {
-    width: '100%',
-  },
-  registerButton: {
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  loginLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  alreadyHaveAccountText: {
-    color: '#666',
-    fontSize: 16,
-  },
-  linkText: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+

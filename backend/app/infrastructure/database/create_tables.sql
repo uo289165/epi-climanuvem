@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS analysis (
 
     location TEXT,
 
+    latitude REAL,
+
+    longitude REAL,
+
     is_anon BOOLEAN NOT NULL DEFAULT FALSE,
 
     status TEXT NOT NULL DEFAULT 'completed'

@@ -1,8 +1,10 @@
 import React from 'react';
-import { Modal, View, StyleSheet, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/src/contexts/ThemeContext';
+import { getStatusModalStyles } from '@/src/styles/globalStyles';
 
-export type ModalType = 'loading' | 'success' | 'error' | 'info';
+export type ModalType = 'loading' | 'success' | 'error' | 'info' | 'confirm';
 
 interface StatusModalProps {
   readonly visible: boolean;
@@ -10,17 +12,23 @@ interface StatusModalProps {
   readonly title?: string;
   readonly message?: string;
   readonly onClose?: () => void;
+  readonly onCancel?: () => void;
 }
 
-export function StatusModal({ visible, type, title, message, onClose }: StatusModalProps) {
+export function StatusModal({ visible, type, title, message, onClose, onCancel }: StatusModalProps) {
+  const { theme } = useTheme();
+  const styles = getStatusModalStyles(theme);
+
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <Ionicons name="checkmark-circle" size={60} color="#34C759" />;
+        return <Ionicons name="checkmark-circle" size={60} color={theme.colors.success} />;
       case 'error':
-        return <Ionicons name="alert-circle" size={60} color="#FF3B30" />;
+        return <Ionicons name="alert-circle" size={60} color={theme.colors.danger} />;
       case 'info':
-        return <Ionicons name="information-circle" size={60} color="#007AFF" />;
+        return <Ionicons name="information-circle" size={60} color={theme.colors.primary} />;
+      case 'confirm':
+        return <Ionicons name="help-circle" size={60} color={theme.colors.primary} />;
       default:
         return null;
     }
@@ -36,7 +44,7 @@ export function StatusModal({ visible, type, title, message, onClose }: StatusMo
         <View style={styles.card}>
           {type === 'loading' ? (
             <>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
               <Text style={styles.loadingText}>{title || 'Cargando...'}</Text>
               {message && <Text style={styles.subtext}>{message}</Text>}
             </>
@@ -48,9 +56,20 @@ export function StatusModal({ visible, type, title, message, onClose }: StatusMo
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.message}>{message}</Text>
               
-              <TouchableOpacity style={styles.button} onPress={onClose}>
-                <Text style={styles.buttonText}>Aceptar</Text>
-              </TouchableOpacity>
+              {type === 'confirm' ? (
+                <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+                  <TouchableOpacity style={[styles.button, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]} onPress={onCancel || onClose}>
+                    <Text style={[styles.buttonText, { color: theme.colors.text }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={onClose}>
+                    <Text style={styles.buttonText}>Aceptar</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.button} onPress={onClose}>
+                  <Text style={styles.buttonText}>Aceptar</Text>
+                </TouchableOpacity>
+              )}
             </>
           )}
         </View>
@@ -59,65 +78,4 @@ export function StatusModal({ visible, type, title, message, onClose }: StatusMo
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: 30,
-    borderRadius: 24,
-    alignItems: 'center',
-    width: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  iconContainer: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 15,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 18,
-    color: '#007AFF',
-    fontWeight: '700',
-  },
-  subtext: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+

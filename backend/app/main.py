@@ -1,4 +1,5 @@
 import os
+import asyncio
 import anyio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -7,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.infrastructure.database.database import engine
 from app.presentation.routes import test_routes, analysis_routes
+from app.business.worker import analysis_worker
 
 def _cleanup_obsolete_analyses(conn):
     cleanup_query = text("""
@@ -53,7 +55,15 @@ async def lifespan(app: FastAPI):
         # Cleanup obsolete anonymous analyses (older than 3 days)
         _cleanup_obsolete_analyses(conn)
                 
+    # Start the analysis background worker
+    worker_task = asyncio.create_task(analysis_worker())
+    
     yield
+    
+    # Cancel the worker upon shutdown
+    worker_task.cancel()
+    # Esperamos a que la tarea termine limpiamente sin propagar su excepción de cancelación
+    await asyncio.gather(worker_task, return_exceptions=True)
 
 app = FastAPI(lifespan=lifespan)
 

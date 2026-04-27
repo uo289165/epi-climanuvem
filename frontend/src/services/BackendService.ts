@@ -55,7 +55,7 @@ export const BackendService = {
    * Sube una imagen para su análisis con su ubicación.
    * Requiere autenticación.
    */
-  uploadImage: async (imageUri: string, locationStr: string, fcmToken?: string) => {
+  uploadImage: async (imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string) => {
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -76,6 +76,8 @@ export const BackendService = {
       } as any);
 
       formData.append('location', locationStr);
+      if (latitude !== undefined) formData.append('latitude', String(latitude));
+      if (longitude !== undefined) formData.append('longitude', String(longitude));
       
       if (fcmToken) {
         formData.append('fcm_token', fcmToken);
@@ -228,6 +230,47 @@ export const BackendService = {
         throw new Error('La petición excedió el tiempo de espera al eliminar análisis.');
       }
       console.error('Error en BackendService.deleteAnalysis:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Cancela un análisis que esté en progreso.
+   * Requiere autenticación.
+   */
+  cancelAnalysis: async (analysisId: string) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
+      }
+
+      const token = await user.getIdToken(true);
+      const response = await fetch(`${BACKEND_URL}/analysis/${analysisId}/cancel`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
+        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('La petición excedió el tiempo de espera al cancelar análisis.');
+      }
+      console.error('Error en BackendService.cancelAnalysis:', error);
       throw error;
     }
   },

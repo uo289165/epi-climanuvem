@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -112,10 +113,14 @@ export const useCapture = () => {
   const continueProcessing = async (uri: string) => {
     showModal('loading', 'Obteniendo ubicación...', 'Por favor espera...');
     let locationStr = "Ubicación desconocida";
+    let latitude: number | undefined;
+    let longitude: number | undefined;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({});
+        latitude = loc.coords.latitude;
+        longitude = loc.coords.longitude;
         
         try {
           // Reverse geocoding para obtener la ciudad y país
@@ -154,7 +159,8 @@ export const useCapture = () => {
 
     showModal('loading', 'Subiendo imagen...', 'Esto puede tardar unos segundos');
     try {
-      await AnalysisService.uploadImage(uri, locationStr, fcmToken);
+      await AnalysisService.uploadImage(uri, locationStr, latitude, longitude, fcmToken);
+      DeviceEventEmitter.emit('refresh_history');
       showModal(
         'success',
         'Imagen enviada',

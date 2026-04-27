@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { AnalysisService, AnalysisHistoryItem } from '@/src/services/AnalysisService';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/src/config/firebaseConfig';
@@ -73,6 +74,19 @@ export const useAnalysisHistory = () => {
 
     return () => {
       notificationListener.remove();
+    };
+  }, [isLoggedIn, loadHistory]);
+
+  // Manage manual refresh events
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('refresh_history', () => {
+      if (isLoggedIn) {
+        loadHistory(true, false); // Reload history but do NOT auto-open modal
+      }
+    });
+
+    return () => {
+      subscription.remove();
     };
   }, [isLoggedIn, loadHistory]);
 
