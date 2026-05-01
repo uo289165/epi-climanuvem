@@ -10,7 +10,7 @@ class AnalysisService:
         self.ollama_client = OllamaClient()
         self.repository = AnalysisRepository()
 
-    async def process_image(self, analysis_id: int, file_path: str, fcm_token: str = ""):
+    async def process_image(self, analysis_id: int, file_path: str, fcm_token: str = "", explainability: bool = False):
         try:
             # 1. Leer imagen y convertir a base64
             async with await anyio.open_file(file_path, "rb") as f:
@@ -18,7 +18,7 @@ class AnalysisService:
                 img_b64 = base64.b64encode(content).decode('utf-8')
             
             # 2. Llamada a Ollama
-            predictions = await self.ollama_client.analyze_image(img_b64)
+            predictions = await self.ollama_client.analyze_image(img_b64, explainability)
             
             # 3. Guardar resultados y actualizar estado a completado exitosamente
             self.repository.save_cloud_analysis(analysis_id, predictions)

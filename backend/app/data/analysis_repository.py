@@ -40,12 +40,21 @@ class AnalysisRepository:
                 cloud_id = conn.execute(cloud_query, {"name": mapped_name}).scalar()
                 
                 if cloud_id:
+                    box_2d = pred.get("box_2d")
+                    box_ymin, box_xmin, box_ymax, box_xmax = (None, None, None, None)
+                    if box_2d and isinstance(box_2d, list) and len(box_2d) == 4:
+                        box_ymin, box_xmin, box_ymax, box_xmax = box_2d
+                        
                     insert_assoc = text("""
-                        INSERT INTO analysis_cloud (analysis_id, cloud_id, confidence)
-                        VALUES (:analysis_id, :cloud_id, :confidence)
+                        INSERT INTO analysis_cloud (analysis_id, cloud_id, confidence, box_ymin, box_xmin, box_ymax, box_xmax)
+                        VALUES (:analysis_id, :cloud_id, :confidence, :box_ymin, :box_xmin, :box_ymax, :box_xmax)
                     """)
                     conn.execute(insert_assoc, {
                         "analysis_id": analysis_id,
                         "cloud_id": cloud_id,
-                        "confidence": confidence
+                        "confidence": confidence,
+                        "box_ymin": box_ymin,
+                        "box_xmin": box_xmin,
+                        "box_ymax": box_ymax,
+                        "box_xmax": box_xmax
                     })

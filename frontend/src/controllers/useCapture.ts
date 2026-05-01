@@ -8,6 +8,8 @@ import { NotificationService } from '@/src/services/NotificationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const useCapture = () => {
+  // Estado para explicabilidad
+  const [includeExplainability, setIncludeExplainability] = useState(false);
 
   // Estado para el modal de estado
   const [modalVisible, setModalVisible] = useState(false);
@@ -118,7 +120,9 @@ export const useCapture = () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
         latitude = loc.coords.latitude;
         longitude = loc.coords.longitude;
         
@@ -159,7 +163,7 @@ export const useCapture = () => {
 
     showModal('loading', 'Subiendo imagen...', 'Esto puede tardar unos segundos');
     try {
-      await AnalysisService.uploadImage(uri, locationStr, latitude, longitude, fcmToken);
+      await AnalysisService.uploadImage(uri, locationStr, latitude, longitude, fcmToken, includeExplainability);
       DeviceEventEmitter.emit('refresh_history');
       showModal(
         'success',
@@ -182,5 +186,7 @@ export const useCapture = () => {
     modalVisible,
     modalConfig,
     hideModal,
+    includeExplainability,
+    setIncludeExplainability,
   };
 };

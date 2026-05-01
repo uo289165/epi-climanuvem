@@ -10,15 +10,16 @@ export interface AnalysisHistoryItem {
   imageUrl?: string;
   results?: {
     cloudTypes: string[];
+    cloudDetails?: { type: string; box: [number, number, number, number] | null }[];
     forecast: string;
     warnings: { text: string; level: number }[];
   };
 }
 
 export class AnalysisService {
-  static async uploadImage(imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string) {
+  static async uploadImage(imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string, includeExplainability: boolean = false) {
     try {
-      return await BackendService.uploadImage(imageUri, locationStr, latitude, longitude, fcmToken);
+      return await BackendService.uploadImage(imageUri, locationStr, latitude, longitude, fcmToken, includeExplainability);
     } catch (error) {
       console.error('Error uploading image to backend:', error);
       throw error;

@@ -24,7 +24,8 @@ async def upload_image(
     location: Annotated[str, Form()] = "Ubicación desconocida",
     latitude: Annotated[float | None, Form()] = None,
     longitude: Annotated[float | None, Form()] = None,
-    fcm_token: Annotated[str, Form()] = ""
+    fcm_token: Annotated[str, Form()] = "",
+    include_explainability: Annotated[bool, Form()] = False
 ):
     uid = user.get("uid")
     if not uid:
@@ -65,7 +66,7 @@ async def upload_image(
     
     db.commit()
     
-    task = AnalysisTask(analysis_id=analysis_id, file_path=file_path, fcm_token=fcm_token)
+    task = AnalysisTask(analysis_id=analysis_id, file_path=file_path, fcm_token=fcm_token, explainability=include_explainability)
     await analysis_queue.put(task)
     
     return {
@@ -85,15 +86,32 @@ def _initialize_analysis_record(row, analysis_id: str) -> dict:
         "imageUrl": row.image_path or "https://picsum.photos/id/1015/800/600",  # Placeholder para testing
         "results": {
             "cloudTypes": [],
+            "cloudDetails": [],
             "forecast": "",
             "warnings": []
         }
     }
 
-def _update_analysis_results(res: dict, row):
-    if row.cloud_type and row.cloud_type not in res["cloudTypes"]:
-        res["cloudTypes"].append(row.cloud_type)
+def _update_cloud_details(res: dict, row):
+    if not row.cloud_type:
+        return
         
+    has_box = row.box_ymin is not None and row.box_xmin is not None and row.box_ymax is not None and row.box_xmax is not None
+    
+    if has_box:
+        res["cloudDetails"].append({
+            "type": row.cloud_type,
+            "box": [row.box_ymin, row.box_xmin, row.box_ymax, row.box_xmax]
+        })
+        # Remove any previous detail for this type that had no box, if we now have one
+        res["cloudDetails"] = [d for d in res["cloudDetails"] if not (d.get("type") == row.cloud_type and d.get("box") is None)]
+    elif not any(d.get("type") == row.cloud_type for d in res["cloudDetails"]):
+        res["cloudDetails"].append({
+            "type": row.cloud_type,
+            "box": None
+        })
+
+def _update_forecast_and_warnings(res: dict, row):
     if row.forecast and row.forecast not in res["forecast"]:
         res["forecast"] = (res["forecast"] + " " + row.forecast).strip()
         
@@ -104,6 +122,13 @@ def _update_analysis_results(res: dict, row):
                 "text": row.warning,
                 "level": getattr(row, "warning_level", 0)
             })
+
+def _update_analysis_results(res: dict, row):
+    if row.cloud_type and row.cloud_type not in res["cloudTypes"]:
+        res["cloudTypes"].append(row.cloud_type)
+        
+    _update_cloud_details(res, row)
+    _update_forecast_and_warnings(res, row)
 
 @router.get("/history", responses={401: {"description": "Unauthorized"}})
 def get_analysis_history(
@@ -123,6 +148,10 @@ def get_analysis_history(
             a.latitude,
             a.longitude,
             a.image_path,
+            ac.box_ymin,
+            ac.box_xmin,
+            ac.box_ymax,
+            ac.box_xmax,
             c.name as cloud_type,
             c.forecast,
             c.warning,

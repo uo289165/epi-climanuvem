@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, ScrollView } from 'react-native';
+import { View, TouchableOpacity, Text, ScrollView, Switch } from 'react-native';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getCaptureViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
@@ -20,6 +20,8 @@ interface CaptureViewProps {
       onCancel?: () => void;
     };
     readonly hideModal: () => void;
+    readonly includeExplainability: boolean;
+    readonly setIncludeExplainability: (value: boolean) => void;
   };
 }
 
@@ -29,7 +31,9 @@ export function CaptureView({ controller }: CaptureViewProps) {
     handleGallerySelection,
     modalVisible,
     modalConfig,
-    hideModal
+    hideModal,
+    includeExplainability,
+    setIncludeExplainability
   } = controller;
 
   const { theme } = useTheme();
@@ -78,6 +82,34 @@ export function CaptureView({ controller }: CaptureViewProps) {
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'} />
           </TouchableOpacity>
+        </View>
+
+        <View style={[styles.optionCard, { paddingVertical: 12, marginTop: 16, flexDirection: 'column', alignItems: 'stretch' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={[styles.iconCircle, { backgroundColor: theme.mode === 'dark' ? 'rgba(255, 152, 0, 0.1)' : '#FFF3E0', width: 40, height: 40, marginRight: 12 }]}>
+                <Ionicons name="eye" size={20} color="#FF9800" />
+              </View>
+              <View>
+                <Text style={[styles.optionTitle, { fontSize: 16 }]}>Explicabilidad</Text>
+                <Text style={[styles.optionDescription, { fontSize: 12 }]}>Incluir bounding boxes</Text>
+              </View>
+            </View>
+            <Switch
+              value={includeExplainability}
+              onValueChange={setIncludeExplainability}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+          {includeExplainability && (
+            <View style={{ marginTop: 12, padding: 8, backgroundColor: theme.mode === 'dark' ? 'rgba(244, 67, 54, 0.1)' : '#FFEBEE', borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="warning" size={16} color={theme.colors.danger} style={{ marginRight: 8 }} />
+              <Text style={{ color: theme.colors.danger, fontSize: 11, flex: 1 }}>
+                Si se activa la explicabilidad, la precisión del modelo puede llegar a disminuir.
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.infoBox}>

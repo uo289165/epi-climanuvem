@@ -38,5 +38,13 @@ CREATE TABLE IF NOT EXISTS analysis_cloud (
 
     cloud_id INTEGER REFERENCES clouds(id),
 
-    confidence FLOAT
+    confidence FLOAT,
+
+    box_ymin REAL,
+
+    box_xmin REAL,
+
+    box_ymax REAL,
+
+    box_xmax REAL
 );

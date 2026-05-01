@@ -55,7 +55,7 @@ export const BackendService = {
    * Sube una imagen para su análisis con su ubicación.
    * Requiere autenticación.
    */
-  uploadImage: async (imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string) => {
+  uploadImage: async (imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string, includeExplainability: boolean = false) => {
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -82,6 +82,7 @@ export const BackendService = {
       if (fcmToken) {
         formData.append('fcm_token', fcmToken);
       }
+      formData.append('include_explainability', String(includeExplainability));
 
       const response = await fetch(`${BACKEND_URL}/analysis/upload`, {
         method: 'POST',

@@ -30,7 +30,7 @@ async def analysis_worker():
                     logger.info(f"Analysis {task.analysis_id} was deleted or cancelled, skipping...")
                 else:
                     service = AnalysisService()
-                    await service.process_image(task.analysis_id, task.file_path, task.fcm_token)
+                    await service.process_image(task.analysis_id, task.file_path, task.fcm_token, task.explainability)
             except Exception as e:
                 logger.error(f"Error processing analysis {task.analysis_id} in worker: {e}")
             finally:

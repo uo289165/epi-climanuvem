@@ -8,6 +8,7 @@ import {
   Image,
   ScrollView,
   Modal,
+  LayoutChangeEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnalysisHistoryItem, AnalysisService } from '@/src/services/AnalysisService';
@@ -111,6 +112,8 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [imageLayout, setImageLayout] = useState<{ width: number; height: number } | null>(null);
+  const [intrinsicImageSize, setIntrinsicImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const executeDelete = async () => {
     setShowConfirmModal(false);
@@ -142,6 +145,13 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
     setShowConfirmModal(true);
   };
 
+  const handleLayout = (event: LayoutChangeEvent) => {
+    setImageLayout({
+      width: event.nativeEvent.layout.width,
+      height: event.nativeEvent.layout.height,
+    });
+  };
+
   return (
     <View style={styles.detailContainer}>
       <View style={styles.detailHeader}>
@@ -160,18 +170,81 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       </View>
 
       <ScrollView contentContainerStyle={styles.detailContent}>
-        <View style={styles.imageContainer}>
+        <View style={styles.imageContainer} onLayout={handleLayout}>
           {analysis.imageUrl ? (
             <Image 
               source={{ uri: analysis.imageUrl }} 
               style={styles.analysisImage}
-              resizeMode="cover"
+              resizeMode="contain"
+              onLoad={(e) => setIntrinsicImageSize({
+                width: e.nativeEvent.source.width,
+                height: e.nativeEvent.source.height
+              })}
             />
           ) : (
             <View style={[styles.analysisImage, styles.placeholderImage]}>
               <Ionicons name="image-outline" size={48} color={theme.colors.border} />
             </View>
           )}
+          
+          {/* Render Bounding Boxes */}
+          {imageLayout && intrinsicImageSize && analysis.results?.cloudDetails?.map((detail, index) => {
+            if (!detail.box) return null;
+            const [val1, val2, val3, val4] = detail.box;
+            
+            // Extract coordinates safely, handling potential inverted arrays
+            const ymin = Math.min(val1, val3);
+            const ymax = Math.max(val1, val3);
+            const xmin = Math.min(val2, val4);
+            const xmax = Math.max(val2, val4);
+            
+            const scale = Math.min(
+              imageLayout.width / intrinsicImageSize.width,
+              imageLayout.height / intrinsicImageSize.height
+            );
+            
+            const renderedWidth = intrinsicImageSize.width * scale;
+            const renderedHeight = intrinsicImageSize.height * scale;
+            
+            const offsetX = (imageLayout.width - renderedWidth) / 2;
+            const offsetY = (imageLayout.height - renderedHeight) / 2;
+            
+            const top = offsetY + ymin * renderedHeight;
+            const left = offsetX + xmin * renderedWidth;
+            const width = (xmax - xmin) * renderedWidth;
+            const height = (ymax - ymin) * renderedHeight;
+
+            return (
+              <View 
+                key={`box-${detail.type}-${index}`} 
+                style={{
+                  position: 'absolute',
+                  top,
+                  left,
+                  width,
+                  height,
+                  borderWidth: 2,
+                  borderColor: theme.colors.primary,
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)', // translucent primary
+                }}
+              >
+                <View style={{
+                  position: 'absolute',
+                  top: -20,
+                  left: -2,
+                  backgroundColor: theme.colors.primary,
+                  paddingHorizontal: 4,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                }}>
+                  <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                    {detail.type}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+
           <View style={[styles.detailStatusBadge, { backgroundColor: getStatusColor(analysis.status, theme) }]}>
             <Text style={styles.detailStatusText}>{getStatusText(analysis.status)}</Text>
           </View>
