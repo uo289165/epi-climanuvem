@@ -5,72 +5,35 @@ from app.infrastructure.config import OLLAMA_URL
 class OllamaClient:
     """Cliente para interactuar con la API de Ollama de forma asíncrona."""
 
-    PROMPT_CLASSIFIER_EXPLAINABILITY = """
+    PROMPT_EXPLAINER = """
     You are an expert meteorological classifier specialized in cloud identification.
 
-    Classes:
-
-    * cirrus
-    * cirrocumulus
-    * cirrostratus
-    * altocumulus
-    * altostratus
-    * nimbostratus
-    * stratocumulus
-    * stratus
-    * cumulus
-    * cumulonimbus
-    * contrail
-
-    Cloud definitions:
-
-    cirrus: thin, wispy, high-altitude clouds
-    cirrocumulus: small white patches in rows
-    cirrostratus: thin veil covering the sky
-    altocumulus: mid-level patches with shading
-    altostratus: gray layer covering most of the sky
-    nimbostratus: thick rain clouds
-    stratocumulus: low, patchy gray clouds
-    stratus: uniform gray layer
-    cumulus: puffy clouds with defined edges
-    cumulonimbus: tall storm clouds
-    contrail: straight line from aircraft
+    In a previous analysis, the following cloud types were identified in this image:
+    {labels_str}
 
     Task:
-    Classify the given image.
+    For EACH cloud type mentioned above, you MUST provide exactly ONE bounding box (box_2d) that encloses its presence in the image.
 
     Rules:
-
-    * Only classify real clouds.
-    * Return ONLY 1 label if there is a single dominant cloud type.
-    * Return a 2nd label ONLY IF you are absolutely certain that a secondary, distinct cloud type is present. DO NOT force a second prediction.
-    * Assign a confidence score (0 to 1) to each detected cloud type.
-    * Confidence should reflect BOTH:
-      * likelihood of correct identification
-      * relative presence in the image
-    * If no clouds: {"label": "no_cloud", "confidence": 1.0}
-    * For every cloud type detected, you MUST provide exactly ONE bounding box (box_2d).
-      * If there are multiple clouds of the same type scattered around, provide ONE generalized bounding box that encloses the main group or the most prominent instance.
-      * DO NOT return multiple predictions for the same cloud type.
-      * box_2d format: [ymin, xmin, ymax, xmax]
-      * Coordinates must be normalized between 0.0 and 1.0 relative to the image dimensions.
-
-    Return strictly valid JSON and NOTHING ELSE.
-    DO NOT use markdown formatting. DO NOT wrap the output in ```json ... ``` blocks.
-    DO NOT add any conversational text or comments.
-    Your output must start exactly with { and end with } and be parseable by json.loads.
+    * For each cloud type provided in the list, return one bounding box.
+    * box_2d format: [ymin, xmin, ymax, xmax]
+    * Coordinates must be normalized between 0.0 and 1.0 relative to the image dimensions.
+    * If a cloud type is scattered, provide ONE generalized bounding box for the main group.
+    * CRITICAL: ONLY draw boxes around actual clouds in the SKY. DO NOT confuse rocks, snow, terrain, or ground features with clouds.
+    * Return strictly valid JSON and NOTHING ELSE.
+    * DO NOT use markdown formatting. DO NOT wrap the output in ```json ... ``` blocks.
+    * DO NOT add any conversational text or comments.
+    * Your output must start exactly with {{ and end with }} and be parseable by json.loads.
 
     Format:
-
-    {
+    {{
       "predictions": [
-        {
+        {{
           "label": "<class_name>",
-          "confidence": <value_between_0_and_1>,
           "box_2d": [<ymin>, <xmin>, <ymax>, <xmax>]
-        }
+        }}
       ]
-    }
+    }}
     """
 
     PROMPT_CLASSIFIER_SIMPLE = """
@@ -139,12 +102,36 @@ class OllamaClient:
         self.url = OLLAMA_URL
         self.model = "gemma4:e4b"
         
-    async def analyze_image(self, base64_image: str, explainability: bool = False) -> list:
-        prompt_to_use = self.PROMPT_CLASSIFIER_EXPLAINABILITY if explainability else self.PROMPT_CLASSIFIER_SIMPLE
+    async def analyze_image(self, base64_image: str) -> list:
+        """Realiza un análisis simple de la imagen para clasificar las nubes."""
+        payload = {
+            "model": self.model,
+            "prompt": self.PROMPT_CLASSIFIER_SIMPLE,
+            "images": [base64_image],
+            "stream": False,
+            "options": {
+                "seed": 42,
+                "temperature": 0,
+                "top_p": 1
+            }
+        }
+        
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            response = await client.post(self.url, json=payload)
+            response.raise_for_status()
+            
+            raw_output = response.json().get("response", "")
+            result = json.loads(raw_output)
+            return result.get("predictions", [])
+
+    async def get_explainability_boxes(self, base64_image: str, labels: list) -> list:
+        """Obtiene las bounding boxes para una lista específica de etiquetas de nubes."""
+        labels_str = ", ".join(labels)
+        prompt = self.PROMPT_EXPLAINER.format(labels_str=labels_str)
         
         payload = {
             "model": self.model,
-            "prompt": prompt_to_use,
+            "prompt": prompt,
             "images": [base64_image],
             "stream": False,
             "options": {

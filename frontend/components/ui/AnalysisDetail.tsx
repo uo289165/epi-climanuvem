@@ -188,62 +188,79 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
           )}
           
           {/* Render Bounding Boxes */}
-          {imageLayout && intrinsicImageSize && analysis.results?.cloudDetails?.map((detail, index) => {
-            if (!detail.box) return null;
-            const [val1, val2, val3, val4] = detail.box;
+          {(() => {
+            if (!imageLayout || !intrinsicImageSize || !analysis.results?.cloudDetails) return null;
             
-            // Extract coordinates safely, handling potential inverted arrays
-            const ymin = Math.min(val1, val3);
-            const ymax = Math.max(val1, val3);
-            const xmin = Math.min(val2, val4);
-            const xmax = Math.max(val2, val4);
-            
-            const scale = Math.min(
-              imageLayout.width / intrinsicImageSize.width,
-              imageLayout.height / intrinsicImageSize.height
-            );
-            
-            const renderedWidth = intrinsicImageSize.width * scale;
-            const renderedHeight = intrinsicImageSize.height * scale;
-            
-            const offsetX = (imageLayout.width - renderedWidth) / 2;
-            const offsetY = (imageLayout.height - renderedHeight) / 2;
-            
-            const top = offsetY + ymin * renderedHeight;
-            const left = offsetX + xmin * renderedWidth;
-            const width = (xmax - xmin) * renderedWidth;
-            const height = (ymax - ymin) * renderedHeight;
+            const boxes = analysis.results.cloudDetails.flatMap((detail, index) => {
+              if (!detail.box) return [];
+              const [val1, val2, val3, val4] = detail.box;
+              
+              const ymin = Math.min(val1, val3);
+              const ymax = Math.max(val1, val3);
+              const xmin = Math.min(val2, val4);
+              const xmax = Math.max(val2, val4);
+              
+              const scale = Math.min(
+                imageLayout.width / intrinsicImageSize.width,
+                imageLayout.height / intrinsicImageSize.height
+              );
+              
+              const renderedWidth = intrinsicImageSize.width * scale;
+              const renderedHeight = intrinsicImageSize.height * scale;
+              
+              const offsetX = (imageLayout.width - renderedWidth) / 2;
+              const offsetY = (imageLayout.height - renderedHeight) / 2;
+              
+              const top = offsetY + ymin * renderedHeight;
+              const left = offsetX + xmin * renderedWidth;
+              const width = (xmax - xmin) * renderedWidth;
+              const height = (ymax - ymin) * renderedHeight;
+              
+              return [{ detail, index, top, left, width, height, labelTopOffset: 0 }];
+            });
 
-            return (
+            boxes.forEach((box, i) => {
+              let overlapCount = 0;
+              for (let j = 0; j < i; j++) {
+                const other = boxes[j];
+                if (other && Math.abs(box.top - other.top) < 20 && Math.abs(box.left - other.left) < 20) {
+                  overlapCount++;
+                }
+              }
+              box.labelTopOffset = overlapCount * 18; // 18px per overlapping label
+            });
+
+            return boxes.map((box) => (
               <View 
-                key={`box-${detail.type}-${index}`} 
+                key={`box-${box.detail.type}-${box.index}`} 
                 style={{
                   position: 'absolute',
-                  top,
-                  left,
-                  width,
-                  height,
+                  top: box.top,
+                  left: box.left,
+                  width: box.width,
+                  height: box.height,
                   borderWidth: 2,
                   borderColor: theme.colors.primary,
-                  backgroundColor: 'rgba(33, 150, 243, 0.2)', // translucent primary
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)',
                 }}
               >
                 <View style={{
                   position: 'absolute',
-                  top: -20,
-                  left: -2,
+                  top: box.labelTopOffset,
+                  left: 0,
                   backgroundColor: theme.colors.primary,
                   paddingHorizontal: 4,
                   paddingVertical: 2,
-                  borderRadius: 4,
+                  borderBottomRightRadius: 4,
+                  borderTopRightRadius: box.labelTopOffset > 0 ? 4 : 0, // add top radius if pushed down
                 }}>
                   <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
-                    {detail.type}
+                    {box.detail.type}
                   </Text>
                 </View>
               </View>
-            );
-          })}
+            ));
+          })()}
 
           <View style={[styles.detailStatusBadge, { backgroundColor: getStatusColor(analysis.status, theme) }]}>
             <Text style={styles.detailStatusText}>{getStatusText(analysis.status)}</Text>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { AnalysisService } from '@/src/services/AnalysisService';
 import { NotificationService } from '@/src/services/NotificationService';
@@ -161,9 +162,23 @@ export const useCapture = () => {
       console.log('Error obtaining FCM token', e);
     }
 
+    showModal('loading', 'Preparando imagen...', 'Optimizando formato...');
+    let processedUri = uri;
+    try {
+      // @ts-ignore - Using deprecated API because the new contextual API causes a native crash in the current Expo SDK version
+      const manipResult = await manipulateAsync(
+        uri,
+        [], // Empty actions will just bake the EXIF rotation into the image
+        { compress: 0.9, format: SaveFormat.JPEG }
+      );
+      processedUri = manipResult.uri;
+    } catch (e) {
+      console.log('Error manipulando imagen (EXIF)', e);
+    }
+
     showModal('loading', 'Subiendo imagen...', 'Esto puede tardar unos segundos');
     try {
-      await AnalysisService.uploadImage(uri, locationStr, latitude, longitude, fcmToken, includeExplainability);
+      await AnalysisService.uploadImage(processedUri, locationStr, latitude, longitude, fcmToken, includeExplainability);
       DeviceEventEmitter.emit('refresh_history');
       showModal(
         'success',
