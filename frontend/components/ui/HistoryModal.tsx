@@ -22,6 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getHistoryModalStyles } from '@/src/styles/globalStyles';
 import { getStatusColor, getStatusText } from '@/src/utils/statusUtils';
+import { useTranslation } from 'react-i18next';
 
 interface HistoryModalProps {
   visible: boolean;
@@ -44,9 +45,9 @@ const HandleBar = () => {
 
 
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string, language: string) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('es-ES', {
+  return date.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -57,6 +58,7 @@ const formatDate = (dateString: string) => {
 
 const RenderHistoryItem = ({ item, onSelect }: { item: AnalysisHistoryItem, onSelect: (item: AnalysisHistoryItem) => void }) => {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getHistoryModalStyles(theme);
   
   return (
@@ -68,10 +70,10 @@ const RenderHistoryItem = ({ item, onSelect }: { item: AnalysisHistoryItem, onSe
         <View style={styles.statusContainer}>
           <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status, theme) }]} />
           <Text style={[styles.statusText, { color: getStatusColor(item.status, theme) }]}>
-            {getStatusText(item.status)}
+            {t(`analysisDetail.${item.status}`, { defaultValue: getStatusText(item.status) })}
           </Text>
         </View>
-        <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+        <Text style={styles.dateText}>{formatDate(item.date, t('common.spanish') === 'Español' ? 'es' : 'en')}</Text>
       </View>
       <View style={styles.itemFooter}>
         <View style={styles.locationContainer}>
@@ -82,7 +84,7 @@ const RenderHistoryItem = ({ item, onSelect }: { item: AnalysisHistoryItem, onSe
             </View>
           )}
           {item.latitude != null && item.longitude != null && (
-            <Text style={styles.coordsText}>Lat: {item.latitude.toFixed(4)}, Lng: {item.longitude.toFixed(4)}</Text>
+            <Text style={styles.coordsText}>{t('common.latitude')}: {item.latitude.toFixed(4)}, {t('common.longitude')}: {item.longitude.toFixed(4)}</Text>
           )}
         </View>
         <Ionicons name="chevron-forward" size={16} color={theme.colors.border} />
@@ -113,13 +115,14 @@ const HistoryContent = ({
   onRefresh
 }: HistoryContentProps) => {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getHistoryModalStyles(theme);
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Cargando historial...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -141,7 +144,7 @@ const HistoryContent = ({
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="list-outline" size={48} color={theme.colors.border} />
-        <Text style={styles.emptyText}>No hay análisis realizados todavía.</Text>
+        <Text style={styles.emptyText}>{t('analysisDetail.noList')}</Text>
       </View>
     );
   }
@@ -159,6 +162,7 @@ const HistoryContent = ({
 
 export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, initialSelectedAnalysisId }: HistoryModalProps) => {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getHistoryModalStyles(theme);
   
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisHistoryItem | null>(null);
@@ -233,7 +237,7 @@ export const HistoryModal = ({ visible, onClose, history, loading, onRefresh, in
                 <HandleBar />
                 {!selectedAnalysis && (
                   <View style={styles.header}>
-                    <Text style={styles.title}>Historial de Análisis</Text>
+                    <Text style={styles.title}>{t('home.history')}</Text>
                     <View style={styles.headerActions}>
                       {onRefresh && (
                         <TouchableOpacity onPress={onRefresh} style={styles.actionButton} disabled={loading}>

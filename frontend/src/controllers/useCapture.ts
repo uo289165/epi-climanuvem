@@ -7,8 +7,11 @@ import { router } from 'expo-router';
 import { AnalysisService } from '@/src/services/AnalysisService';
 import { NotificationService } from '@/src/services/NotificationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 
 export const useCapture = () => {
+  const { t } = useTranslation();
+  
   // Estado para explicabilidad
   const [includeExplainability, setIncludeExplainability] = useState(false);
 
@@ -46,8 +49,8 @@ export const useCapture = () => {
     if (status !== 'granted') {
       showModal(
         'error', 
-        'Permiso denegado', 
-        'El permiso de cámara es necesario para utilizar esta funcionalidad.',
+        t('auth.permissionDenied'), 
+        t('auth.cameraPermissionRequired'),
         () => router.replace('/' as any)
       );
       return;
@@ -70,8 +73,8 @@ export const useCapture = () => {
     if (status !== 'granted') {
       showModal(
         'error', 
-        'Permiso denegado', 
-        'El permiso de galería es necesario para utilizar esta funcionalidad.',
+        t('auth.permissionDenied'), 
+        t('auth.galleryPermissionRequired'),
         () => router.replace('/' as any)
       );
       return;
@@ -90,7 +93,7 @@ export const useCapture = () => {
 
   const processImage = async (uri: string) => {
     if (!validateIsJpg(uri)) {
-      showModal('error', 'Formato no válido', 'El sistema únicamente acepta imágenes en formato JPG.');
+      showModal('error', t('auth.invalidFormat'), t('auth.invalidJpg'));
       return;
     }
 
@@ -100,8 +103,8 @@ export const useCapture = () => {
     } else {
       showModal(
         'confirm',
-        'Mejor experiencia',
-        'Para el correcto funcionamiento de ClimaNuvem, necesitamos permiso de Ubicación (para saber dónde avistaste la nube) y Notificaciones (para avisarte cuando el análisis esté listo). ¿Deseas continuar?',
+        t('auth.betterExperience'),
+        t('auth.permissionPrompt'),
         async () => {
           await AsyncStorage.setItem('hasSeenPermissionPrompt', 'true');
           await continueProcessing(uri);
@@ -114,8 +117,8 @@ export const useCapture = () => {
   };
 
   const continueProcessing = async (uri: string) => {
-    showModal('loading', 'Obteniendo ubicación...', 'Por favor espera...');
-    let locationStr = "Ubicación desconocida";
+    showModal('loading', t('capture.obtainingLocation'), t('common.wait'));
+    let locationStr = t('capture.unknownLocation');
     let latitude: number | undefined;
     let longitude: number | undefined;
     try {
@@ -136,8 +139,8 @@ export const useCapture = () => {
           
           if (geocode && geocode.length > 0) {
             const address = geocode[0];
-            const city = address.city || address.subregion || address.region || 'Ciudad desconocida';
-            const country = address.country || 'País desconocido';
+            const city = address.city || address.subregion || address.region || t('capture.unknownCity');
+            const country = address.country || t('capture.unknownCountry');
             locationStr = `${city}, ${country}`;
           } else {
             locationStr = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
@@ -154,7 +157,7 @@ export const useCapture = () => {
       console.log("Error obteniendo ubicación:", e);
     }
 
-    showModal('loading', 'Preparando envío...', 'Obteniendo notificaciones de la sesión...');
+    showModal('loading', t('capture.preparingUpload'), t('capture.obtainingNotifications'));
     let fcmToken: string | undefined;
     try {
       fcmToken = await NotificationService.getPushTokenAsync();
@@ -162,7 +165,7 @@ export const useCapture = () => {
       console.log('Error obtaining FCM token', e);
     }
 
-    showModal('loading', 'Preparando imagen...', 'Optimizando formato...');
+    showModal('loading', t('capture.preparingImage'), t('capture.optimizingFormat'));
     let processedUri = uri;
     try {
       // @ts-ignore - Using deprecated API because the new contextual API causes a native crash in the current Expo SDK version
@@ -176,21 +179,21 @@ export const useCapture = () => {
       console.log('Error manipulando imagen (EXIF)', e);
     }
 
-    showModal('loading', 'Subiendo imagen...', 'Esto puede tardar unos segundos');
+    showModal('loading', t('capture.uploadingImage'), t('capture.secondsWait'));
     try {
       await AnalysisService.uploadImage(processedUri, locationStr, latitude, longitude, fcmToken, includeExplainability);
       DeviceEventEmitter.emit('refresh_history');
       showModal(
         'success',
-        'Imagen enviada',
-        'Te notificaremos automáticamente cuando se termine el análisis y será guardado en tu historial.',
+        t('capture.imageSent'),
+        t('capture.imageSentDesc'),
         () => {
           hideModal();
           router.back();
         }
       );
     } catch (error) {
-      showModal('error', 'Error', 'Hubo un problema al enviar la imagen al servidor.');
+      showModal('error', t('common.error'), t('capture.uploadError'));
       console.error(error);
     }
   };
@@ -205,3 +208,4 @@ export const useCapture = () => {
     setIncludeExplainability,
   };
 };
+

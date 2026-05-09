@@ -3,11 +3,13 @@ import { router } from 'expo-router';
 import { TextInput, Platform } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
 import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
+import { useTranslation } from 'react-i18next';
 
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 
 export const useAuth = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -50,7 +52,7 @@ export const useAuth = () => {
 
   const promptAsync = async () => {
     if (!GoogleSignin) {
-      showModal('error', 'Google Sign-in no disponible', 'Esta funcionalidad no está disponible en este entorno (ej. Expo Go).');
+      showModal('error', t('auth.googleNotAvailable'), t('auth.googleNotAvailableDesc'));
       return;
     }
 
@@ -62,13 +64,13 @@ export const useAuth = () => {
       if (idToken) {
         handleGoogleLogin(idToken);
       } else {
-        showModal('error', 'Error', 'No se pudo obtener el token de Google.');
+        showModal('error', t('common.error'), t('auth.googleErrorDesc'));
       }
     } catch (error: any) {
       console.log("Error Google Native:", error);
       // Manejar cancelaciones o errores específicos si es necesario
       if (error.code !== 'SIGN_IN_CANCELLED') {
-        showModal('error', 'Error con Google', 'Ocurrió un error al intentar iniciar sesión con Google.');
+        showModal('error', t('auth.googleError'), t('auth.googleErrorDesc'));
       }
     }
   };
@@ -82,7 +84,7 @@ export const useAuth = () => {
       router.replace('/home' as any);
     } else {
       const message = getAuthErrorMessage(result.error ?? '');
-      showModal('error', 'Error con Google Sign-In', message);
+      showModal('error', t('auth.googleError'), message);
     }
   };
 
@@ -96,7 +98,7 @@ export const useAuth = () => {
   const handleLogin = async () => {
     // Validar formato de email
     if (!EMAIL_REGEX.test(email)) {
-      showModal('error', 'Error', 'Por favor, introduce un correo electrónico válido.');
+      showModal('error', t('common.error'), t('auth.invalidEmail'));
       return;
     }
 
@@ -111,7 +113,7 @@ export const useAuth = () => {
     } else {
       setPassword('');
       const message = getAuthErrorMessage(response.error ?? '');
-      showModal('error', 'Error', message);
+      showModal('error', t('common.error'), message);
     }
   };
 
@@ -122,12 +124,12 @@ export const useAuth = () => {
 
   const handleResetPassword = async () => {
     if (!email) {
-      showModal('error', 'Error', 'Por favor, introduce tu correo electrónico primero para restablecer la contraseña.');
+      showModal('error', t('common.error'), t('auth.resetPasswordFirst'));
       return;
     }
 
     if (!EMAIL_REGEX.test(email)) {
-      showModal('error', 'Error', 'Por favor, introduce un correo electrónico válido.');
+      showModal('error', t('common.error'), t('auth.invalidEmail'));
       return;
     }
 
@@ -138,12 +140,12 @@ export const useAuth = () => {
     if (response.success) {
       showModal(
         'success',
-        'Correo enviado',
-        'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.'
+        t('auth.emailSent'),
+        t('auth.resetPasswordEmailSent')
       );
     } else {
       const message = getAuthErrorMessage(response.error ?? '');
-      showModal('error', 'Error al restablecer', message);
+      showModal('error', t('auth.resetError'), message);
     }
   };
 

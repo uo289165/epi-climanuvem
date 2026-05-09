@@ -4,9 +4,11 @@ import { AuthService } from '@/src/services/AuthService';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { auth } from '@/src/config/firebaseConfig';
 import { BackendService } from '@/src/services/BackendService';
+import { useTranslation } from 'react-i18next';
 
 export const useHome = () => {
   const historyHook = useAnalysisHistory();
+  const { t } = useTranslation();
   const [userName, setUserName] = useState<string>('');
   const [isGuest, setIsGuest] = useState<boolean>(true);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -18,13 +20,13 @@ export const useHome = () => {
     useCallback(() => {
       const user = auth.currentUser;
       if (user) {
-        setUserName(user.isAnonymous ? 'Invitado' : (user.displayName || user.email || 'Usuario'));
+        setUserName(user.isAnonymous ? t('common.guest') : (user.displayName || user.email || t('common.user')));
         setIsGuest(user.isAnonymous);
       } else {
-        setUserName('Invitado');
+        setUserName(t('common.guest'));
         setIsGuest(true);
       }
-    }, [])
+    }, [t])
   );
 
 
@@ -43,19 +45,19 @@ export const useHome = () => {
 
   const handleTestBackend = async () => {
     setModalType('loading');
-    setModalTitle('Conectando...');
-    setModalMessage('Estamos verificando la conexión con el backend.');
+    setModalTitle(t('common.connecting'));
+    setModalMessage(t('home.testDesc'));
     setModalVisible(true);
 
     try {
       const response = await BackendService.testEndpoint();
       setModalType('success');
-      setModalTitle('¡Éxito!');
+      setModalTitle(t('common.successExclamation'));
       setModalMessage(JSON.stringify(response, null, 2));
     } catch (error: any) {
       setModalType('error');
-      setModalTitle('Fallo de conexión');
-      setModalMessage(error.message || 'Error al conectar con el servidor.');
+      setModalTitle(t('common.connectionError'));
+      setModalMessage(error.message || t('common.serverError'));
     }
   };
 

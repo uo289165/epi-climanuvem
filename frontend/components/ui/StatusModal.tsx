@@ -3,6 +3,7 @@ import { Modal, View, Text, ActivityIndicator, TouchableOpacity } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getStatusModalStyles } from '@/src/styles/globalStyles';
+import { useTranslation } from 'react-i18next';
 
 export type ModalType = 'loading' | 'success' | 'error' | 'info' | 'confirm';
 
@@ -17,6 +18,7 @@ interface StatusModalProps {
 
 export function StatusModal({ visible, type, title, message, onClose, onCancel }: StatusModalProps) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getStatusModalStyles(theme);
 
   const getIcon = () => {
@@ -45,7 +47,7 @@ export function StatusModal({ visible, type, title, message, onClose, onCancel }
           {type === 'loading' ? (
             <>
               <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={styles.loadingText}>{title || 'Cargando...'}</Text>
+              <Text style={styles.loadingText}>{title || t('common.loading')}</Text>
               {message && <Text style={styles.subtext}>{message}</Text>}
             </>
           ) : (
@@ -59,15 +61,15 @@ export function StatusModal({ visible, type, title, message, onClose, onCancel }
               {type === 'confirm' ? (
                 <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
                   <TouchableOpacity style={[styles.button, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]} onPress={onCancel || onClose}>
-                    <Text style={[styles.buttonText, { color: theme.colors.text }]}>Cancelar</Text>
+                    <Text style={[styles.buttonText, { color: theme.colors.text }]}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={onClose}>
-                    <Text style={styles.buttonText}>Aceptar</Text>
+                    <Text style={styles.buttonText}>{t('common.accept')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity style={styles.button} onPress={onClose}>
-                  <Text style={styles.buttonText}>Aceptar</Text>
+                  <Text style={styles.buttonText}>{t('common.accept')}</Text>
                 </TouchableOpacity>
               )}
             </>

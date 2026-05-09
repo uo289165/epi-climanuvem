@@ -7,6 +7,7 @@ import { AuthInput } from '@/components/ui/AuthInput';
 import { AuthButton } from '@/components/ui/AuthButton';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { StatusModal } from '@/components/ui/StatusModal';
+import { useTranslation } from 'react-i18next';
 
 interface AuthViewProps {
   readonly controller: {
@@ -52,6 +53,7 @@ export function AuthView({ controller }: AuthViewProps) {
     hideModal
   } = controller;
 
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = getAuthViewStyles(theme);
 
@@ -64,14 +66,14 @@ export function AuthView({ controller }: AuthViewProps) {
       
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.headerSection}>
-          <ThemedText type="title" style={styles.title}>Bienvenido de nuevo</ThemedText>
-          <ThemedText style={styles.subtitle}>Ingresa tus credenciales para acceder al panel de control.</ThemedText>
+          <ThemedText type="title" style={styles.title}>{t('auth.welcomeBack')}</ThemedText>
+          <ThemedText style={styles.subtitle}>{t('auth.loginDesc')}</ThemedText>
         </View>
         
         <View style={styles.formContainer}>
           <AuthInput
             icon="mail-outline"
-            placeholder="Correo electrónico"
+            placeholder={t('auth.email')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -84,7 +86,7 @@ export function AuthView({ controller }: AuthViewProps) {
           <AuthInput
             ref={passwordInputRef}
             icon="lock-closed-outline"
-            placeholder="Contraseña"
+            placeholder={t('auth.password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -96,13 +98,13 @@ export function AuthView({ controller }: AuthViewProps) {
           />
           
           <AuthButton 
-            title="Iniciar Sesión" 
+            title={t('auth.login')} 
             onPress={handleLogin} 
             loading={loading}
           />
 
           <AuthButton 
-            title="Continuar con Google" 
+            title={t('auth.google')} 
             onPress={promptAsync} 
             variant="google"
             icon="logo-google"
@@ -111,7 +113,7 @@ export function AuthView({ controller }: AuthViewProps) {
 
           <View style={styles.actionsContainer}>
             <AuthButton 
-              title="¿Olvidaste tu contraseña?" 
+              title={t('auth.forgotPassword')} 
               onPress={handleResetPassword} 
               variant="outline"
               style={styles.resetButton}
@@ -120,8 +122,8 @@ export function AuthView({ controller }: AuthViewProps) {
             />
 
             <View style={styles.registerLink}>
-              <Text style={styles.noAccountText}>¿No tienes cuenta? </Text>
-              <Text style={styles.linkText} onPress={handleNavigateToRegister}>Regístrate</Text>
+              <Text style={styles.noAccountText}>{t('auth.noAccount')}</Text>
+              <Text style={styles.linkText} onPress={handleNavigateToRegister}>{t('auth.register')}</Text>
             </View>
           </View>
         </View>

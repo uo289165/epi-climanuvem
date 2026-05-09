@@ -2,10 +2,12 @@ import { useState, useRef } from 'react';
 import { router } from 'expo-router';
 import { TextInput } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
+import { useTranslation } from 'react-i18next';
 
 import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
 
 export const useRegister = () => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,22 +54,22 @@ export const useRegister = () => {
   const handleRegister = async () => {
     // Validaciones
     if (username.length < 3 || username.length > 20) {
-      showModal('error', 'Error', 'El nombre de usuario debe tener entre 3 y 20 caracteres.');
+      showModal('error', t('common.error'), t('auth.usernameLength'));
       return;
     }
 
     if (!EMAIL_REGEX.test(email)) {
-      showModal('error', 'Error', 'Por favor, introduce un correo electrónico válido.');
+      showModal('error', t('common.error'), t('auth.invalidEmail'));
       return;
     }
 
     if (password.length < 6) {
-      showModal('error', 'Error', 'La contraseña debe tener al menos 6 caracteres.');
+      showModal('error', t('common.error'), t('auth.passwordLength'));
       return;
     }
 
     if (password !== confirmPassword) {
-      showModal('error', 'Error', 'Las contraseñas no coinciden.');
+      showModal('error', t('common.error'), t('auth.passwordsDoNotMatch'));
       return;
     }
 
@@ -80,8 +82,8 @@ export const useRegister = () => {
     if (response.success) {
       showModal(
         'success',
-        'Registro exitoso',
-        'Hemos enviado un correo de verificación. Por favor, verifica tu correo antes de iniciar sesión.',
+        t('auth.registrationSuccess'),
+        t('auth.verificationEmailSent'),
         () => {
           hideModal();
           handleNavigateToLogin();
@@ -92,7 +94,7 @@ export const useRegister = () => {
       setPassword('');
       setConfirmPassword('');
       const message = getAuthErrorMessage(response.error ?? '');
-      showModal('error', 'Error', message);
+      showModal('error', t('common.error'), message);
     }
   };
 

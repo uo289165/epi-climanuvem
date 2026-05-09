@@ -4,8 +4,10 @@ import { auth } from '@/src/config/firebaseConfig';
 import { AuthService } from '@/src/services/AuthService';
 import { BackendService } from '@/src/services/BackendService';
 import { onAuthStateChanged } from 'firebase/auth';
+import { useTranslation } from 'react-i18next';
 
 export const useProfile = () => {
+  const { t } = useTranslation();
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [newName, setNewName] = useState<string>('');
@@ -42,13 +44,13 @@ export const useProfile = () => {
     if (result.success) {
       setUserName(newName.trim());
       setModalType('success');
-      setModalTitle('Perfil actualizado');
-      setModalMessage('Tu nombre de usuario ha sido actualizado correctamente.');
+      setModalTitle(t('profile.updated'));
+      setModalMessage(t('profile.updatedDesc'));
       setModalVisible(true);
     } else {
       setModalType('error');
-      setModalTitle('Error');
-      setModalMessage('No se pudo actualizar el nombre. ' + (result.error || ''));
+      setModalTitle(t('common.error'));
+      setModalMessage(t('profile.updatedDesc') + ' ' + (result.error || ''));
       setModalVisible(true);
     }
   };
@@ -76,16 +78,16 @@ export const useProfile = () => {
         router.replace('/' as any);
       } else {
         setModalType('error');
-        setModalTitle('Fallo de seguridad');
-        setModalMessage('Para borrar tu cuenta debes haber iniciado sesión recientemente por motivos de seguridad. Por favor cierra sesión, vuelve a entrar e inténtalo de nuevo.');
+        setModalTitle(t('profile.securityFail'));
+        setModalMessage(t('profile.reauthRequired'));
         setModalVisible(true);
       }
     } catch (error) {
       console.error('Error al eliminar datos:', error);
       setDeleting(false);
       setModalType('error');
-      setModalTitle('Error al eliminar datos');
-      setModalMessage('Algo salió mal al borrar tus archivos u operaciones asociadas. Intenta de nuevo.');
+      setModalTitle(t('profile.deleteDataError'));
+      setModalMessage(t('profile.deleteDataErrorDesc'));
       setModalVisible(true);
     }
   };

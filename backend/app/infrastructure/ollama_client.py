@@ -1,5 +1,6 @@
 import httpx
 import json
+import re
 from app.infrastructure.config import OLLAMA_URL
 
 class OllamaClient:
@@ -102,6 +103,34 @@ class OllamaClient:
         self.url = OLLAMA_URL
         self.model = "gemma4:e4b"
         
+    def _clean_and_parse_json(self, text: str) -> dict:
+        """Limpia la respuesta del modelo e intenta parsearla como JSON."""
+        # 1. Intentar encontrar el bloque JSON si el modelo incluyó texto extra o markdown
+        cleaned = text.strip()
+        
+        # Si contiene bloques de código markdown, extraer el contenido
+        if "```" in cleaned:
+            # Intentar extraer lo que hay dentro de los bloques ```json o ```
+            json_match = re.search(r'```(?:json)?\s*([^`]+)\s*```', cleaned, re.DOTALL)
+            if json_match:
+                cleaned = json_match.group(1).strip()
+        
+        # 2. Si todavía no es un JSON puro, intentar encontrar el primer '{' y el último '}'
+        if not (cleaned.startswith('{') and cleaned.endswith('}')):
+            start_idx = cleaned.find('{')
+            end_idx = cleaned.rfind('}')
+            if start_idx != -1 and end_idx != -1:
+                cleaned = cleaned[start_idx:end_idx+1]
+
+        # 3. Intentar parsear
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            print(f"Error de parseo JSON: {e}")
+            print(f"Respuesta original del modelo: {text}")
+            # Si falla, devolvemos un objeto vacío para evitar que el worker rompa
+            return {"predictions": []}
+
     async def analyze_image(self, base64_image: str) -> list:
         """Realiza un análisis simple de la imagen para clasificar las nubes."""
         payload = {
@@ -121,7 +150,7 @@ class OllamaClient:
             response.raise_for_status()
             
             raw_output = response.json().get("response", "")
-            result = json.loads(raw_output)
+            result = self._clean_and_parse_json(raw_output)
             return result.get("predictions", [])
 
     async def get_explainability_boxes(self, base64_image: str, labels: list) -> list:
@@ -146,5 +175,5 @@ class OllamaClient:
             response.raise_for_status()
             
             raw_output = response.json().get("response", "")
-            result = json.loads(raw_output)
+            result = self._clean_and_parse_json(raw_output)
             return result.get("predictions", [])

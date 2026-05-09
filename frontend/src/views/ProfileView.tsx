@@ -7,6 +7,8 @@ import { AuthButton } from '@/components/ui/AuthButton';
 import { StatusModal, ModalType } from '@/components/ui/StatusModal';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/src/contexts/LanguageContext';
 
 interface ProfileViewProps {
   controller: {
@@ -30,6 +32,91 @@ interface ProfileViewProps {
   };
 }
 
+const AppearanceSection = ({ theme, themeMode, setThemeMode, t, styles }: any) => (
+  <View style={styles.card}>
+    <Text style={styles.sectionTitle}>{t('profile.appearance')}</Text>
+    <Text style={styles.warningText}>
+      {t('profile.appearanceDesc')}
+    </Text>
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      <TouchableOpacity 
+        style={[styles.themeButton, themeMode === 'light' && styles.themeButtonActive]} 
+        onPress={() => setThemeMode('light')}
+      >
+        <Ionicons name="sunny-outline" size={18} color={themeMode === 'light' ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.themeButtonText, themeMode === 'light' && { color: theme.colors.primary }]}>{t('common.light')}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.themeButton, themeMode === 'dark' && styles.themeButtonActive]} 
+        onPress={() => setThemeMode('dark')}
+      >
+        <Ionicons name="moon-outline" size={18} color={themeMode === 'dark' ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.themeButtonText, themeMode === 'dark' && { color: theme.colors.primary }]}>{t('common.dark')}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.themeButton, themeMode === 'system' && styles.themeButtonActive]} 
+        onPress={() => setThemeMode('system')}
+      >
+        <Ionicons name="phone-portrait-outline" size={18} color={themeMode === 'system' ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.themeButtonText, themeMode === 'system' && { color: theme.colors.primary }]}>{t('common.system')}</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const LanguageSection = ({ theme, languageMode, setLanguageMode, t, styles }: any) => (
+  <View style={styles.card}>
+    <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+    <Text style={styles.warningText}>
+      {t('profile.languageDesc')}
+    </Text>
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      <TouchableOpacity 
+        style={[styles.themeButton, languageMode === 'en' && styles.themeButtonActive]} 
+        onPress={() => setLanguageMode('en')}
+      >
+        <Ionicons name="language-outline" size={18} color={languageMode === 'en' ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.themeButtonText, languageMode === 'en' && { color: theme.colors.primary }]}>{t('common.english')}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.themeButton, languageMode === 'es' && styles.themeButtonActive]} 
+        onPress={() => setLanguageMode('es')}
+      >
+        <Ionicons name="language-outline" size={18} color={languageMode === 'es' ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.themeButtonText, languageMode === 'es' && { color: theme.colors.primary }]}>{t('common.spanish')}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.themeButton, languageMode === 'system' && styles.themeButtonActive]} 
+        onPress={() => setLanguageMode('system')}
+      >
+        <Ionicons name="phone-portrait-outline" size={18} color={languageMode === 'system' ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.themeButtonText, languageMode === 'system' && { color: theme.colors.primary }]}>{t('common.system')}</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const DangerZoneSection = ({ confirmDeleteAccount, deleting, t, styles }: any) => (
+  <View style={[styles.card, styles.dangerCard]}>
+    <Text style={[styles.sectionTitle, styles.dangerText]}>{t('profile.dangerZone')}</Text>
+    <Text style={styles.warningText}>
+      {t('profile.dangerDesc')}
+    </Text>
+    <TouchableOpacity 
+      style={styles.dangerButton} 
+      onPress={confirmDeleteAccount}
+      disabled={deleting}
+    >
+      <Ionicons name="trash-outline" size={20} color="white" />
+      <Text style={styles.dangerButtonText}>{t('profile.deleteAccount')}</Text>
+    </TouchableOpacity>
+  </View>
+);
+
 export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
   const {
     userName,
@@ -52,13 +139,15 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
   } = controller;
 
   const { theme, themeMode, setThemeMode } = useTheme();
+  const { languageMode, setLanguageMode } = useLanguage();
+  const { t } = useTranslation();
   const styles = getProfileViewStyles(theme);
 
   const hasNameChanged = newName.trim() !== userName && newName.trim().length > 0;
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Mi Perfil" showBack={true} onBack={handleGoBack} />
+      <AppHeader title={t('profile.title')} showBack={true} onBack={handleGoBack} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.avatarContainer}>
@@ -69,17 +158,17 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Nombre de usuario</Text>
+          <Text style={styles.sectionTitle}>{t('profile.username')}</Text>
           <TextInput
             style={styles.input}
             value={newName}
             onChangeText={setNewName}
-            placeholder="Escribe tu nombre"
+            placeholder={t('profile.usernamePlaceholder')}
             placeholderTextColor="#999"
           />
           <View style={styles.saveAction}>
             <AuthButton
-              title={saving ? "Guardando..." : "Guardar Cambios"}
+              title={saving ? t('common.saving') : t('common.save')}
               onPress={handleUpdateName}
               variant="primary"
               disabled={!hasNameChanged || saving}
@@ -89,61 +178,11 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Apariencia</Text>
-          <Text style={styles.warningText}>
-            Personaliza el tema de la aplicación.
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity 
-              style={[
-                styles.themeButton, 
-                themeMode === 'light' && styles.themeButtonActive
-              ]} 
-              onPress={() => setThemeMode('light')}
-            >
-              <Ionicons name="sunny-outline" size={18} color={themeMode === 'light' ? theme.colors.primary : theme.colors.textSecondary} />
-              <Text style={[styles.themeButtonText, themeMode === 'light' && { color: theme.colors.primary }]}>Claro</Text>
-            </TouchableOpacity>
+        <AppearanceSection theme={theme} themeMode={themeMode} setThemeMode={setThemeMode} t={t} styles={styles} />
 
-            <TouchableOpacity 
-              style={[
-                styles.themeButton, 
-                themeMode === 'dark' && styles.themeButtonActive
-              ]} 
-              onPress={() => setThemeMode('dark')}
-            >
-              <Ionicons name="moon-outline" size={18} color={themeMode === 'dark' ? theme.colors.primary : theme.colors.textSecondary} />
-              <Text style={[styles.themeButtonText, themeMode === 'dark' && { color: theme.colors.primary }]}>Oscuro</Text>
-            </TouchableOpacity>
+        <LanguageSection theme={theme} languageMode={languageMode} setLanguageMode={setLanguageMode} t={t} styles={styles} />
 
-            <TouchableOpacity 
-              style={[
-                styles.themeButton, 
-                themeMode === 'system' && styles.themeButtonActive
-              ]} 
-              onPress={() => setThemeMode('system')}
-            >
-              <Ionicons name="phone-portrait-outline" size={18} color={themeMode === 'system' ? theme.colors.primary : theme.colors.textSecondary} />
-              <Text style={[styles.themeButtonText, themeMode === 'system' && { color: theme.colors.primary }]}>Sistema</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={[styles.card, styles.dangerCard]}>
-          <Text style={[styles.sectionTitle, styles.dangerText]}>Zona de peligro</Text>
-          <Text style={styles.warningText}>
-            Una vez elimines tu cuenta, no hay vuelta atrás. Por favor asegura tu decisión.
-          </Text>
-          <TouchableOpacity 
-            style={styles.dangerButton} 
-            onPress={confirmDeleteAccount}
-            disabled={deleting}
-          >
-            <Ionicons name="trash-outline" size={20} color="white" />
-            <Text style={styles.dangerButtonText}>Eliminar Cuenta</Text>
-          </TouchableOpacity>
-        </View>
+        <DangerZoneSection confirmDeleteAccount={confirmDeleteAccount} deleting={deleting} t={t} styles={styles} />
       </ScrollView>
 
       {/* Modal de confirmación de borrado */}
@@ -153,16 +192,16 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
             <View style={styles.modalIconContainer}>
               <Ionicons name="warning" size={40} color={theme.colors.danger} />
             </View>
-            <Text style={styles.modalTitle}>¿Eliminar cuenta?</Text>
+            <Text style={styles.modalTitle}>{t('profile.deleteConfirmTitle')}</Text>
             <Text style={styles.modalBody}>
-              Esta acción es permanente y eliminará todos tus análisis. ¿Estás seguro de continuar?
+              {t('profile.deleteConfirmBody')}
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.cancelButton} onPress={cancelDeleteAccount}>
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirmDeleteButton} onPress={proceedWithDelete}>
-                <Text style={styles.confirmDeleteButtonText}>Sí, eliminar</Text>
+                <Text style={styles.confirmDeleteButtonText}>{t('profile.yesDelete')}</Text>
               </TouchableOpacity>
             </View>
           </View>

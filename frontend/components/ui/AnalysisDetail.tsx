@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnalysisHistoryItem, AnalysisService } from '@/src/services/AnalysisService';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getAnalysisDetailStyles } from '@/src/styles/globalStyles';
 import { getStatusColor, getStatusText } from '@/src/utils/statusUtils';
@@ -32,9 +33,9 @@ const getWarningLevelColor = (level: number, theme: any) => {
   }
 };
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string, language: string) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('es-ES', {
+  return date.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -44,48 +45,60 @@ const formatDate = (dateString: string) => {
 };
 
 const AnalysisResults = ({ analysis, styles, theme, onCancel }: { analysis: AnalysisHistoryItem, styles: any, theme: any, onCancel: () => void }) => {
+  const { t } = useTranslation();
+
   if (analysis.status === 'analyzing') {
     return (
       <View style={styles.processingContainer}>
         <View style={styles.processingRow}>
           <ActivityIndicator size="small" color={theme.colors.primary} />
-          <Text style={styles.processingText}>El análisis sigue en progreso...</Text>
+          <Text style={styles.processingText}>{t('analysisDetail.analyzing')}...</Text>
         </View>
         <TouchableOpacity style={styles.cancelAnalysisBtn} onPress={onCancel}>
-          <Text style={styles.cancelAnalysisBtnText}>Cancelar Análisis</Text>
+          <Text style={styles.cancelAnalysisBtnText}>{t('analysisDetail.cancelAnalysis')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   if (analysis.status === 'cancelled') {
-      return <Text style={styles.noResultsText}>Este análisis fue cancelado.</Text>;
+      return <Text style={styles.noResultsText}>{t('analysisDetail.cancelled')}</Text>;
   }
 
   if (analysis.status === 'completed') {
     return (
       <View>
         <View style={styles.resultItem}>
-          <Text style={styles.resultLabel}>Nubes Identificadas:</Text>
+          <Text style={styles.resultLabel}>{t('analysisDetail.results')}:</Text>
           <View style={styles.tagContainer}>
             {analysis.results?.cloudTypes.map((type) => (
               <View key={`${analysis.id}-cloud-${type}`} style={styles.tag}>
-                <Text style={styles.tagText}>{type}</Text>
+                <Text style={styles.tagText}>{t(`clouds.${type}.name`, { defaultValue: type })}</Text>
               </View>
             ))}
           </View>
         </View>
 
         <View style={styles.resultItem}>
-          <Text style={styles.resultLabel}>Pronóstico Estimado:</Text>
-          <Text style={styles.resultValue}>{analysis.results?.forecast}</Text>
+          <Text style={styles.resultLabel}>{t('analysisDetail.forecast')}:</Text>
+          <Text style={styles.resultValue}>
+            {analysis.results?.cloudTypes.map((type) => t(`clouds.${type}.forecast`)).filter(Boolean).join('. ') || analysis.results?.forecast}
+          </Text>
         </View>
 
         {analysis.results?.warnings && analysis.results.warnings.length > 0 && (
           <View style={styles.resultItem}>
-            <Text style={[styles.resultLabel, { color: theme.colors.danger }]}>Advertencias:</Text>
+            <Text style={[styles.resultLabel, { color: theme.colors.danger }]}>{t('analysisDetail.warnings')}:</Text>
             {analysis.results.warnings.map((warning, index) => {
-              const text = typeof warning === 'string' ? warning : warning.text;
+              const type = typeof warning === 'string' ? null : (warning as any).type;
+              let text = '';
+              if (type) {
+                text = t(`clouds.${type}.warning`);
+              } else if (typeof warning === 'string') {
+                text = warning;
+              } else {
+                text = warning.text;
+              }
               const level = typeof warning === 'string' ? 0 : warning.level;
               const color = getWarningLevelColor(level, theme);
 
@@ -102,11 +115,12 @@ const AnalysisResults = ({ analysis, styles, theme, onCancel }: { analysis: Anal
     );
   }
 
-  return <Text style={styles.noResultsText}>No hay resultados disponibles.</Text>;
+  return <Text style={styles.noResultsText}>{t('analysisDetail.noClouds')}</Text>;
 };
 
 export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDetailProps) => {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getAnalysisDetailStyles(theme);
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -123,7 +137,7 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       onDeleteSuccess?.();
     } catch (error) {
       console.error("Error al eliminar el análisis:", error);
-      Alert.alert("Error", "No se pudo eliminar el análisis.");
+      Alert.alert(t('common.error'), t('analysisDetail.deleteError'));
       setIsDeleting(false);
     }
   };
@@ -136,7 +150,7 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       onDeleteSuccess?.(); // Go back and refresh since state changed
     } catch (error) {
       console.error("Error al cancelar el análisis:", error);
-      Alert.alert("Error", "No se pudo cancelar el análisis.");
+      Alert.alert(t('common.error'), t('analysisDetail.cancelError'));
       setIsDeleting(false);
     }
   };
@@ -157,9 +171,9 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       <View style={styles.detailHeader}>
         <TouchableOpacity onPress={onBack} style={styles.backButton} disabled={isDeleting}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-          <Text style={styles.backText}>Volver</Text>
+          <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.detailTitle}>Detalles</Text>
+        <Text style={styles.detailTitle}>{t('analysisDetail.title')}</Text>
         <TouchableOpacity onPress={handleDeletePress} style={styles.deleteButton} disabled={isDeleting}>
           {isDeleting ? (
              <ActivityIndicator size="small" color={theme.colors.danger} />
@@ -255,7 +269,7 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
                   borderTopRightRadius: box.labelTopOffset > 0 ? 4 : 0, // add top radius if pushed down
                 }}>
                   <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
-                    {box.detail.type}
+                    {t(`clouds.${box.detail.type}.name`, { defaultValue: box.detail.type })}
                   </Text>
                 </View>
               </View>
@@ -263,15 +277,15 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
           })()}
 
           <View style={[styles.detailStatusBadge, { backgroundColor: getStatusColor(analysis.status, theme) }]}>
-            <Text style={styles.detailStatusText}>{getStatusText(analysis.status)}</Text>
+            <Text style={styles.detailStatusText}>{t(`analysisDetail.${analysis.status}`, { defaultValue: getStatusText(analysis.status) })}</Text>
           </View>
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Información General</Text>
+          <Text style={styles.sectionTitle}>{t('analysisDetail.title')}</Text>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.infoText}>{formatDate(analysis.date)}</Text>
+            <Text style={styles.infoText}>{formatDate(analysis.date, t('common.spanish') === 'Español' ? 'es' : 'en')}</Text>
           </View>
           {analysis.location && (
             <View style={styles.infoRow}>
@@ -282,13 +296,13 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
           {analysis.latitude != null && analysis.longitude != null && (
             <View style={styles.infoRow}>
               <Ionicons name="compass-outline" size={18} color={theme.colors.textSecondary} />
-              <Text style={styles.infoText}>Lat: {analysis.latitude.toFixed(4)}, Lng: {analysis.longitude.toFixed(4)}</Text>
+              <Text style={styles.infoText}>{t('common.latitude')}: {analysis.latitude.toFixed(4)}, {t('common.longitude')}: {analysis.longitude.toFixed(4)}</Text>
             </View>
           )}
         </View>
 
         <View style={styles.resultsSection}>
-          <Text style={styles.sectionTitle}>Resultados del Análisis</Text>
+          <Text style={styles.sectionTitle}>{t('analysisDetail.results')}</Text>
           <AnalysisResults 
             analysis={analysis} 
             styles={styles} 
@@ -302,14 +316,14 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       <Modal visible={showConfirmModal} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.confirmModal}>
-            <Text style={styles.confirmTitle}>Eliminar análisis</Text>
-            <Text style={styles.confirmText}>¿Estás seguro de que deseas eliminar este análisis del historial?</Text>
+            <Text style={styles.confirmTitle}>{t('analysisDetail.confirmDeleteTitle')}</Text>
+            <Text style={styles.confirmText}>{t('analysisDetail.confirmDeleteBody')}</Text>
             <View style={styles.confirmActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowConfirmModal(false)}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteBtn} onPress={executeDelete}>
-                <Text style={styles.deleteBtnText}>Eliminar</Text>
+                <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -320,14 +334,14 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       <Modal visible={showCancelModal} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.confirmModal}>
-            <Text style={styles.confirmTitle}>Cancelar análisis</Text>
-            <Text style={styles.confirmText}>¿Deseas cancelar este análisis? Será retirado de la cola de procesamiento.</Text>
+            <Text style={styles.confirmTitle}>{t('analysisDetail.confirmCancelTitle')}</Text>
+            <Text style={styles.confirmText}>{t('analysisDetail.confirmCancelBody')}</Text>
             <View style={styles.confirmActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCancelModal(false)}>
-                <Text style={styles.cancelBtnText}>Volver</Text>
+                <Text style={styles.cancelBtnText}>{t('common.back')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteBtn} onPress={executeCancel}>
-                <Text style={styles.deleteBtnText}>Sí, Cancelar</Text>
+                <Text style={styles.deleteBtnText}>{t('analysisDetail.yesCancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { StatusModal } from '@/components/ui/StatusModal';
+import { useTranslation } from 'react-i18next';
 
 interface CaptureViewProps {
   readonly controller: {
@@ -37,11 +38,12 @@ export function CaptureView({ controller }: CaptureViewProps) {
   } = controller;
 
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getCaptureViewStyles(theme);
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Analizar Imagen" />
+      <AppHeader title={t('capture.analyze')} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.illustrationContainer}>
@@ -51,7 +53,7 @@ export function CaptureView({ controller }: CaptureViewProps) {
         </View>
 
         <ThemedText style={styles.subtitle}>
-          Selecciona una de las siguientes opciones para subir una fotografía y analizarla. El sistema identificará automáticamente las nubes encontradas.
+          {t('capture.subtitle')}
         </ThemedText>
 
         <View style={styles.optionsContainer}>
@@ -63,8 +65,8 @@ export function CaptureView({ controller }: CaptureViewProps) {
               <Ionicons name="camera" size={32} color={theme.colors.primary} />
             </View>
             <View style={styles.optionTextContainer}>
-              <Text style={styles.optionTitle}>Tomar Foto</Text>
-              <Text style={styles.optionDescription}>Usa la cámara en tiempo real</Text>
+              <Text style={styles.optionTitle}>{t('capture.title')}</Text>
+              <Text style={styles.optionDescription}>{t('capture.cameraDesc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
@@ -77,8 +79,8 @@ export function CaptureView({ controller }: CaptureViewProps) {
               <Ionicons name="image" size={32} color={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'} />
             </View>
             <View style={styles.optionTextContainer}>
-              <Text style={styles.optionTitle}>Galería</Text>
-              <Text style={styles.optionDescription}>Elige una imagen existente</Text>
+              <Text style={styles.optionTitle}>{t('capture.gallery')}</Text>
+              <Text style={styles.optionDescription}>{t('capture.galleryDesc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'} />
           </TouchableOpacity>
@@ -91,8 +93,8 @@ export function CaptureView({ controller }: CaptureViewProps) {
                 <Ionicons name="eye" size={20} color="#FF9800" />
               </View>
               <View>
-                <Text style={[styles.optionTitle, { fontSize: 16 }]}>Explicabilidad</Text>
-                <Text style={[styles.optionDescription, { fontSize: 12 }]}>Incluir bounding boxes</Text>
+                <Text style={[styles.optionTitle, { fontSize: 16 }]}>{t('capture.explainabilityName')}</Text>
+                <Text style={[styles.optionDescription, { fontSize: 12 }]}>{t('capture.explainability')}</Text>
               </View>
             </View>
             <Switch
@@ -106,7 +108,7 @@ export function CaptureView({ controller }: CaptureViewProps) {
             <View style={{ marginTop: 12, padding: 8, backgroundColor: theme.mode === 'dark' ? 'rgba(244, 67, 54, 0.1)' : '#FFEBEE', borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="warning" size={16} color={theme.colors.danger} style={{ marginRight: 8 }} />
               <Text style={{ color: theme.colors.danger, fontSize: 11, flex: 1 }}>
-                Si se activa la explicabilidad, la precisión del modelo puede llegar a disminuir.
+                {t('capture.explainabilityWarning')}
               </Text>
             </View>
           )}
@@ -114,7 +116,7 @@ export function CaptureView({ controller }: CaptureViewProps) {
 
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={20} color={theme.colors.textSecondary} style={{marginRight: 8}} />
-          <Text style={styles.infoText}>Formatos soportados: Solo JPG.</Text>
+          <Text style={styles.infoText}>{t('capture.formatInfo')}</Text>
         </View>
       </ScrollView>
 

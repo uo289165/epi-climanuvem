@@ -5,6 +5,7 @@ import { getHomeViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/ui/AppHeader';
+import { useTranslation } from 'react-i18next';
 import { HistoryModal } from '@/components/ui/HistoryModal';
 import { StatusModal, ModalType } from '@/components/ui/StatusModal';
 import { AnalysisHistoryItem } from '@/src/services/AnalysisService';
@@ -53,11 +54,12 @@ export function HomeView({ controller }: HomeViewProps) {
   } = controller;
 
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getHomeViewStyles(theme);
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Inicio" showBack={false} />
+      <AppHeader title={t('home.title')} showBack={false} />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity 
@@ -71,7 +73,7 @@ export function HomeView({ controller }: HomeViewProps) {
               <Ionicons name="person" size={32} color={theme.colors.primary} />
             </View>
             <View style={styles.welcomeTextContainer}>
-              <ThemedText type="title" style={styles.title}>¡Bienvenido!</ThemedText>
+              <ThemedText type="title" style={styles.title}>{t('home.welcome')}</ThemedText>
               <ThemedText style={styles.subtitle}>{userName}</ThemedText>
             </View>
             {!isGuest && (
@@ -80,15 +82,15 @@ export function HomeView({ controller }: HomeViewProps) {
           </View>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Acciones rápidas</Text>
+        <Text style={styles.sectionTitle}>{t('home.quickActions')}</Text>
         
         <TouchableOpacity style={styles.actionCard} onPress={handleNavigateToCapture}>
           <View style={[styles.iconContainer, { backgroundColor: theme.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : '#E3F2FD' }]}>
             <Ionicons name="camera" size={28} color={theme.colors.primary} />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>Analizar Imagen</Text>
-            <Text style={styles.actionDescription}>Sube una foto de nubes para análisis</Text>
+            <Text style={styles.actionTitle}>{t('home.analyzeImage')}</Text>
+            <Text style={styles.actionDescription}>{t('home.analyzeDesc')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.border} />
         </TouchableOpacity>
@@ -98,8 +100,8 @@ export function HomeView({ controller }: HomeViewProps) {
             <Ionicons name="list" size={28} color={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'} />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>Historial</Text>
-            <Text style={styles.actionDescription}>Revisa tus análisis anteriores</Text>
+            <Text style={styles.actionTitle}>{t('home.history')}</Text>
+            <Text style={styles.actionDescription}>{t('home.historyDesc')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.border} />
         </TouchableOpacity>
@@ -109,8 +111,8 @@ export function HomeView({ controller }: HomeViewProps) {
             <Ionicons name="flask" size={28} color={theme.colors.success} />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>Probar Backend</Text>
-            <Text style={styles.actionDescription}>Verificar conexión con el servidor</Text>
+            <Text style={styles.actionTitle}>{t('home.testBackend')}</Text>
+            <Text style={styles.actionDescription}>{t('home.testDesc')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.border} />
         </TouchableOpacity>
@@ -120,8 +122,8 @@ export function HomeView({ controller }: HomeViewProps) {
             <Ionicons name="log-out" size={28} color={theme.colors.danger} />
           </View>
           <View style={styles.actionTextContainer}>
-            <Text style={[styles.actionTitle, { color: theme.colors.danger }]}>Cerrar Sesión</Text>
-            <Text style={styles.actionDescription}>Salir de tu cuenta actual</Text>
+            <Text style={[styles.actionTitle, { color: theme.colors.danger }]}>{t('home.logout')}</Text>
+            <Text style={styles.actionDescription}>{t('home.logoutDesc')}</Text>
           </View>
         </TouchableOpacity>
       </ScrollView>

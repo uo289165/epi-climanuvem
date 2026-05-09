@@ -1,5 +1,6 @@
 import os
 import uuid
+from datetime import datetime
 import asyncio
 import anyio
 from typing import Annotated, List, Dict, Any
@@ -11,10 +12,14 @@ from app.presentation.dependencies.auth_dependency import get_current_user
 from app.infrastructure.database.database import get_db, engine
 from app.business.analysis_service import AnalysisService
 from app.infrastructure.queue import analysis_queue, AnalysisTask
+from app.data.analysis_repository import CLOUD_NAME_MAPPING
+
+REVERSE_CLOUD_NAME_MAPPING = {v: k for k, v in CLOUD_NAME_MAPPING.items()}
 
 router = APIRouter()
 
 USER_ID_NOT_FOUND_MSG = "User ID not found in token"
+UPLOADS_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
 
 @router.post("/upload", responses={401: {"description": "Unauthorized"}})
 async def upload_image(
@@ -32,19 +37,18 @@ async def upload_image(
         raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
 
     file_ext = file.filename.split(".")[-1] if file.filename else "jpg"
-    unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    unique_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}.{file_ext}"
     
-    # Calculate path from this file's location to the root 'uploads' folder
-    # this file: backend/app/presentation/routes/analysis_routes.py
-    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads")
-    await anyio.Path(uploads_dir).mkdir(parents=True, exist_ok=True)
-    file_path = os.path.join(uploads_dir, unique_filename)
+    user_uploads_dir = os.path.join(UPLOADS_BASE_DIR, uid)
+    await anyio.Path(user_uploads_dir).mkdir(parents=True, exist_ok=True)
+    file_path = os.path.join(user_uploads_dir, unique_filename)
     
     content = await file.read()
     async with await anyio.open_file(file_path, "wb") as f:
         await f.write(content)
         
-    image_db_path = f"/uploads/{unique_filename}"
+    image_db_path = f"/uploads/{uid}/{unique_filename}"
     
     firebase_claim = user.get("firebase", {})
     is_anon = firebase_claim.get("sign_in_provider") == "anonymous"
@@ -96,18 +100,21 @@ def _update_cloud_details(res: dict, row):
     if not row.cloud_type:
         return
         
+    cloud_key = REVERSE_CLOUD_NAME_MAPPING.get(row.cloud_type, row.cloud_type)
     has_box = row.box_ymin is not None and row.box_xmin is not None and row.box_ymax is not None and row.box_xmax is not None
     
     if has_box:
         res["cloudDetails"].append({
-            "type": row.cloud_type,
+            "type": cloud_key,
+            "originalType": row.cloud_type,
             "box": [row.box_ymin, row.box_xmin, row.box_ymax, row.box_xmax]
         })
         # Remove any previous detail for this type that had no box, if we now have one
-        res["cloudDetails"] = [d for d in res["cloudDetails"] if not (d.get("type") == row.cloud_type and d.get("box") is None)]
-    elif not any(d.get("type") == row.cloud_type for d in res["cloudDetails"]):
+        res["cloudDetails"] = [d for d in res["cloudDetails"] if not (d.get("type") == cloud_key and d.get("box") is None)]
+    elif not any(d.get("type") == cloud_key for d in res["cloudDetails"]):
         res["cloudDetails"].append({
-            "type": row.cloud_type,
+            "type": cloud_key,
+            "originalType": row.cloud_type,
             "box": None
         })
 
@@ -119,13 +126,16 @@ def _update_forecast_and_warnings(res: dict, row):
         warning_exists = any(w.get("text") == row.warning for w in res["warnings"])
         if not warning_exists:
             res["warnings"].append({
+                "type": REVERSE_CLOUD_NAME_MAPPING.get(row.cloud_type, row.cloud_type) if row.cloud_type else None,
                 "text": row.warning,
                 "level": getattr(row, "warning_level", 0)
             })
 
 def _update_analysis_results(res: dict, row):
-    if row.cloud_type and row.cloud_type not in res["cloudTypes"]:
-        res["cloudTypes"].append(row.cloud_type)
+    if row.cloud_type:
+        cloud_key = REVERSE_CLOUD_NAME_MAPPING.get(row.cloud_type, row.cloud_type)
+        if cloud_key not in res["cloudTypes"]:
+            res["cloudTypes"].append(cloud_key)
         
     _update_cloud_details(res, row)
     _update_forecast_and_warnings(res, row)
@@ -177,11 +187,12 @@ def get_analysis_history(
     # List of analyses, maintaining the descending order
     return list(analyses_dict.values())
 
-def _remove_analysis_file(image_path, uploads_dir):
+def _remove_analysis_file(image_path):
     if not image_path:
         return
-    filename = image_path.split("/")[-1]
-    file_path = os.path.join(uploads_dir, filename)
+    # image_path is expected to be like /uploads/{uid}/{filename}
+    rel_path = image_path.replace("/uploads/", "")
+    file_path = os.path.join(UPLOADS_BASE_DIR, rel_path)
     if os.path.exists(file_path):
         try:
             os.remove(file_path)
@@ -203,11 +214,8 @@ def delete_user_data(
     if not analyses:
         return {"message": "Datos de usuario eliminados correctamente."}
         
-    # Calculate path to the uploads directory
-    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads")
-    
     for row in analyses:
-        _remove_analysis_file(row.image_path, uploads_dir)
+        _remove_analysis_file(row.image_path)
         db.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": row.id})
         db.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": row.id})
         
@@ -231,8 +239,7 @@ def delete_single_analysis(
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
         
-    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads")
-    _remove_analysis_file(analysis.image_path, uploads_dir)
+    _remove_analysis_file(analysis.image_path)
     
     db.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": analysis_id})
     db.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": analysis_id})

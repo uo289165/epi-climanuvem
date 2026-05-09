@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getAppHeaderStyles } from '@/src/styles/globalStyles';
+import { useTranslation } from 'react-i18next';
 
 interface AppHeaderProps {
   title?: string;
@@ -14,6 +15,7 @@ interface AppHeaderProps {
 
 export const AppHeader = ({ title, showBack = true, onBack, transparent }: AppHeaderProps) => {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const styles = getAppHeaderStyles(theme);
 
   const handleBack = () => {
@@ -29,7 +31,7 @@ export const AppHeader = ({ title, showBack = true, onBack, transparent }: AppHe
       {showBack && (
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
-          <Text style={styles.backText}>Volver</Text>
+          <Text style={styles.backText}>{t('common.back')}</Text>
         </TouchableOpacity>
       )}
       {title && <Text style={[styles.title, !showBack && styles.titleCentered]}>{title}</Text>}

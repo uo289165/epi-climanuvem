@@ -4,6 +4,7 @@ import { useTheme } from '@/src/contexts/ThemeContext';
 import { getWelcomeViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/ui/AuthButton';
+import { useTranslation } from 'react-i18next';
 
 interface WelcomeViewProps {
   readonly controller: {
@@ -18,6 +19,7 @@ export function WelcomeView({ controller }: WelcomeViewProps) {
     handleContinueAsGuest,
   } = controller;
 
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = getWelcomeViewStyles(theme);
 
@@ -30,21 +32,21 @@ export function WelcomeView({ controller }: WelcomeViewProps) {
             <ThemedText style={styles.logoText}>ClimaNuvem</ThemedText>
           </View>
           
-          <ThemedText type="title" style={styles.title}>Meteorólogo de bolsillo</ThemedText>
+          <ThemedText type="title" style={styles.title}>{t('welcome.title')}</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Analiza el tiempo y las nubes con tu móvil.
+            {t('welcome.subtitle')}
           </ThemedText>
 
           <View style={styles.buttonContainer}>
             <AuthButton 
-              title="Iniciar Sesión" 
+              title={t('auth.login')} 
               onPress={handleNavigateToLogin} 
               variant="primary"
               icon="log-in-outline"
             />
 
             <AuthButton 
-              title="Continuar como invitado" 
+              title={t('welcome.guest')} 
               onPress={handleContinueAsGuest} 
               variant="google"
               icon="person-outline"

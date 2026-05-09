@@ -14,14 +14,6 @@ export const getStatusColor = (status: string, theme: Theme) => {
 };
 
 export const getStatusText = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return 'Completado';
-    case 'analyzing':
-      return 'En progreso';
-    case 'cancelled':
-      return 'Cancelado';
-    default:
-      return status;
-  }
+  if (!status) return '';
+  return status.charAt(0).toUpperCase() + status.slice(1);
 };
