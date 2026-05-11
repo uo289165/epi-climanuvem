@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 import anyio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -7,8 +8,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.infrastructure.database.database import engine
+from app.infrastructure.logging_config import configure_logging
 from app.presentation.routes import test_routes, analysis_routes
 from app.business.worker import analysis_worker
+
+configure_logging()
+logger = logging.getLogger(__name__)
 
 def _cleanup_obsolete_analyses(conn):
     cleanup_query = text("""
@@ -31,7 +36,7 @@ def _cleanup_obsolete_analyses(conn):
                 try:
                     os.remove(file_path)
                 except Exception as e:
-                    print(f"Error deleting file {file_path}: {e}")
+                    logger.error("Error deleting obsolete file at %s: %s", file_path, e)
                     
         conn.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": row.id})
         conn.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": row.id})

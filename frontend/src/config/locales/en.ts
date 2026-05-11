@@ -172,6 +172,7 @@ export default {
       secondsWait: "This may take a few seconds",
       imageSent: "Image sent",
       imageSentDesc: "We will automatically notify you when the analysis is finished and it will be saved in your history.",
+      imageTooLarge: "The image exceeds the maximum allowed size of 5MB.",
       uploadError: "There was a problem sending the image to the server.",
       unknownCity: "Unknown city",
       unknownCountry: "Unknown country",

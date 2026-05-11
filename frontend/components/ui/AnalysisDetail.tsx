@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getAnalysisDetailStyles } from '@/src/styles/globalStyles';
 import { getStatusColor, getStatusText } from '@/src/utils/statusUtils';
+import { Logger } from '@/src/services/LoggerService';
 
 interface AnalysisDetailProps {
   analysis: AnalysisHistoryItem;
@@ -136,7 +137,7 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       await AnalysisService.deleteAnalysis(analysis.id);
       onDeleteSuccess?.();
     } catch (error) {
-      console.error("Error al eliminar el análisis:", error);
+      Logger.error('Error al eliminar el análisis', error);
       Alert.alert(t('common.error'), t('analysisDetail.deleteError'));
       setIsDeleting(false);
     }
@@ -149,7 +150,7 @@ export const AnalysisDetail = ({ analysis, onBack, onDeleteSuccess }: AnalysisDe
       await AnalysisService.cancelAnalysis(analysis.id);
       onDeleteSuccess?.(); // Go back and refresh since state changed
     } catch (error) {
-      console.error("Error al cancelar el análisis:", error);
+      Logger.error('Error al cancelar el análisis', error);
       Alert.alert(t('common.error'), t('analysisDetail.cancelError'));
       setIsDeleting(false);
     }

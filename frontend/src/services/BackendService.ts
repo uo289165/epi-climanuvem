@@ -1,6 +1,17 @@
 import { auth } from '@/src/config/firebaseConfig';
+import { Logger } from '@/src/services/LoggerService';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const IMAGE_TOO_LARGE_CODE = 'IMAGE_TOO_LARGE_MAX_5MB';
+
+const mapBackendError = async (response: Response): Promise<Error> => {
+  const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
+  const detail = typeof errorData?.detail === 'string' ? errorData.detail : '';
+  if (response.status === 413 || detail === IMAGE_TOO_LARGE_CODE) {
+    return new Error(IMAGE_TOO_LARGE_CODE);
+  }
+  return new Error(detail || `Error del servidor: ${response.status}`);
+};
 
 export const BackendService = {
 
@@ -18,9 +29,9 @@ export const BackendService = {
         throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
       }
 
-      console.log('Obteniendo token de Firebase...');
+      Logger.debug('Obteniendo token de Firebase para endpoint de prueba');
       const token = await user.getIdToken(true);
-      console.log('Token obtenido. Realizando petición a:', `${BACKEND_URL}/test`);
+      Logger.debug('Token obtenido; enviando request a endpoint de prueba');
 
       const response = await fetch(`${BACKEND_URL}/test`, {
         method: 'GET',
@@ -32,21 +43,20 @@ export const BackendService = {
       });
 
       clearTimeout(timeoutId);
-      console.log('Respuesta recibida:', response.status);
+      Logger.info('Respuesta recibida de endpoint de prueba', { status: response.status });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
-        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+        throw await mapBackendError(response);
       }
 
       return await response.json();
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        console.error('La petición excedió el tiempo de espera (10s)');
+        Logger.error('La petición de prueba excedió el tiempo de espera de 10s');
         throw new Error('La petición excedió el tiempo de espera. Verifica que el backend sea alcanzable.');
       }
-      console.error('Error en BackendService.testEndpoint:', error);
+      Logger.error('Error en BackendService.testEndpoint', error);
       throw error;
     }
   },
@@ -94,13 +104,12 @@ export const BackendService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
-        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+        throw await mapBackendError(response);
       }
 
       return await response.json();
     } catch (error: any) {
-      console.error('Error en BackendService.uploadImage:', error);
+      Logger.error('Error en BackendService.uploadImage', error);
       throw error;
     }
   },
@@ -132,8 +141,7 @@ export const BackendService = {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
-        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+        throw await mapBackendError(response);
       }
 
       const data = await response.json();
@@ -148,7 +156,7 @@ export const BackendService = {
       if (error.name === 'AbortError') {
         throw new Error('La petición excedió el tiempo de espera al obtener historial.');
       }
-      console.error('Error en BackendService.getAnalysisHistory:', error);
+      Logger.error('Error en BackendService.getAnalysisHistory', error);
       throw error;
     }
   },
@@ -179,8 +187,7 @@ export const BackendService = {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
-        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+        throw await mapBackendError(response);
       }
 
       return await response.json();
@@ -189,7 +196,7 @@ export const BackendService = {
       if (error.name === 'AbortError') {
         throw new Error('La petición excedió el tiempo de espera al eliminar historial.');
       }
-      console.error('Error en BackendService.deleteUserData:', error);
+      Logger.error('Error en BackendService.deleteUserData', error);
       throw error;
     }
   },
@@ -220,8 +227,7 @@ export const BackendService = {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
-        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+        throw await mapBackendError(response);
       }
 
       return await response.json();
@@ -230,7 +236,7 @@ export const BackendService = {
       if (error.name === 'AbortError') {
         throw new Error('La petición excedió el tiempo de espera al eliminar análisis.');
       }
-      console.error('Error en BackendService.deleteAnalysis:', error);
+      Logger.error('Error en BackendService.deleteAnalysis', error);
       throw error;
     }
   },
@@ -261,8 +267,7 @@ export const BackendService = {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
-        throw new Error(errorData.detail || `Error del servidor: ${response.status}`);
+        throw await mapBackendError(response);
       }
 
       return await response.json();
@@ -271,7 +276,7 @@ export const BackendService = {
       if (error.name === 'AbortError') {
         throw new Error('La petición excedió el tiempo de espera al cancelar análisis.');
       }
-      console.error('Error en BackendService.cancelAnalysis:', error);
+      Logger.error('Error en BackendService.cancelAnalysis', error);
       throw error;
     }
   },

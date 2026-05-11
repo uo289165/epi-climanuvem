@@ -5,6 +5,7 @@ import { AuthService } from '@/src/services/AuthService';
 import { BackendService } from '@/src/services/BackendService';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
+import { Logger } from '@/src/services/LoggerService';
 
 export const useProfile = () => {
   const { t } = useTranslation();
@@ -83,7 +84,7 @@ export const useProfile = () => {
         setModalVisible(true);
       }
     } catch (error) {
-      console.error('Error al eliminar datos:', error);
+      Logger.error('Error al eliminar datos del usuario', error);
       setDeleting(false);
       setModalType('error');
       setModalTitle(t('profile.deleteDataError'));

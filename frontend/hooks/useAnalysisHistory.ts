@@ -4,6 +4,7 @@ import { AnalysisService, AnalysisHistoryItem } from '@/src/services/AnalysisSer
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/src/config/firebaseConfig';
 import * as Notifications from 'expo-notifications';
+import { Logger } from '@/src/services/LoggerService';
 
 export const useAnalysisHistory = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,7 +44,7 @@ export const useAnalysisHistory = () => {
       setHistory(data);
       setHasLoaded(true);
     } catch (error) {
-      console.error('Error loading history:', error);
+      Logger.error('Error loading history', error);
     } finally {
       setLoadingHistory(false);
     }

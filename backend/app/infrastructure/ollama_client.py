@@ -1,7 +1,10 @@
 import httpx
 import json
+import logging
 import re
 from app.infrastructure.config import OLLAMA_URL
+
+logger = logging.getLogger(__name__)
 
 class OllamaClient:
     """Cliente para interactuar con la API de Ollama de forma asíncrona."""
@@ -126,8 +129,8 @@ class OllamaClient:
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError as e:
-            print(f"Error de parseo JSON: {e}")
-            print(f"Respuesta original del modelo: {text}")
+            logger.warning("Error parsing model JSON response: %s", e)
+            logger.debug("Raw model response: %s", text)
             # Si falla, devolvemos un objeto vacío para evitar que el worker rompa
             return {"predictions": []}
 

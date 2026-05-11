@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import { Logger } from '@/src/services/LoggerService';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,7 +25,7 @@ export const NotificationService = {
       }
       
       if (finalStatus !== 'granted') {
-        console.warn('Los permisos de navegación no fueron concedidos.');
+        Logger.warn('Los permisos de notificaciones no fueron concedidos.');
         return undefined;
       }
       
@@ -33,10 +34,10 @@ export const NotificationService = {
         const tokenData = await Notifications.getDevicePushTokenAsync();
         token = tokenData.data;
       } catch (error) {
-        console.error('Error al obtener el push token del dispositivo:', error);
+        Logger.error('Error al obtener el push token del dispositivo', error);
       }
     } else {
-      console.log('Las notificaciones Push requieren de un dispositivo físico.');
+      Logger.info('Las notificaciones push requieren de un dispositivo físico.');
     }
     
     return token;

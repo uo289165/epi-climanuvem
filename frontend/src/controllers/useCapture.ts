@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { File } from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { router } from 'expo-router';
 import { AnalysisService } from '@/src/services/AnalysisService';
 import { NotificationService } from '@/src/services/NotificationService';
+import { Logger } from '@/src/services/LoggerService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TOO_LARGE_CODE = 'IMAGE_TOO_LARGE_MAX_5MB';
 
 export const useCapture = () => {
   const { t } = useTranslation();
@@ -63,7 +68,7 @@ export const useCapture = () => {
     });
 
     if (!result.canceled) {
-      processImage(result.assets[0].uri);
+      void processImage(result.assets[0].uri);
     }
   };
 
@@ -87,13 +92,38 @@ export const useCapture = () => {
     });
 
     if (!result.canceled) {
-      processImage(result.assets[0].uri);
+      void processImage(result.assets[0].uri);
     }
+  };
+
+  const validateImageSize = (uri: string) => {
+    try {
+      const file = new File(uri);
+      if (!file.exists) {
+        showModal('error', t('common.error'), t('capture.uploadError'));
+        return false;
+      }
+
+      const metadata = file.info();
+      const fileSize = metadata.size ?? 0;
+      if (fileSize > MAX_IMAGE_SIZE_BYTES) {
+        showModal('error', t('common.error'), t('capture.imageTooLarge'));
+        return false;
+      }
+    } catch (error) {
+      Logger.warn('No se pudo validar el tamaño de la imagen antes de subirla', error);
+    }
+    return true;
   };
 
   const processImage = async (uri: string) => {
     if (!validateIsJpg(uri)) {
       showModal('error', t('auth.invalidFormat'), t('auth.invalidJpg'));
+      return;
+    }
+
+    const isSizeValid = validateImageSize(uri);
+    if (!isSizeValid) {
       return;
     }
 
@@ -116,57 +146,59 @@ export const useCapture = () => {
     }
   };
 
-  const continueProcessing = async (uri: string) => {
-    showModal('loading', t('capture.obtainingLocation'), t('common.wait'));
+  const getLocationData = async () => {
     let locationStr = t('capture.unknownLocation');
     let latitude: number | undefined;
     let longitude: number | undefined;
+
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+      if (status !== 'granted') {
+        Logger.info("Permiso de ubicación denegado; se usará 'Ubicación desconocida'");
+        return { locationStr, latitude, longitude };
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      latitude = loc.coords.latitude;
+      longitude = loc.coords.longitude;
+
+      try {
+        const geocode = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude
         });
-        latitude = loc.coords.latitude;
-        longitude = loc.coords.longitude;
-        
-        try {
-          // Reverse geocoding para obtener la ciudad y país
-          const geocode = await Location.reverseGeocodeAsync({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude
-          });
-          
-          if (geocode && geocode.length > 0) {
-            const address = geocode[0];
-            const city = address.city || address.subregion || address.region || t('capture.unknownCity');
-            const country = address.country || t('capture.unknownCountry');
-            locationStr = `${city}, ${country}`;
-          } else {
-            locationStr = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
-          }
-        } catch (geoError) {
-          console.log("Error en reverse geocoding:", geoError);
+
+        if (geocode && geocode.length > 0) {
+          const address = geocode[0];
+          const city = address.city || address.subregion || address.region || t('capture.unknownCity');
+          const country = address.country || t('capture.unknownCountry');
+          locationStr = `${city}, ${country}`;
+        } else {
           locationStr = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
         }
-        
-      } else {
-        console.log("Permiso de ubicación denegado, se usará 'Ubicación desconocida'");
+      } catch (geoError) {
+        Logger.warn('Error en reverse geocoding', geoError);
+        locationStr = `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
       }
     } catch (e) {
-      console.log("Error obteniendo ubicación:", e);
+      Logger.warn('Error obteniendo ubicación', e);
     }
 
-    showModal('loading', t('capture.preparingUpload'), t('capture.obtainingNotifications'));
-    let fcmToken: string | undefined;
+    return { locationStr, latitude, longitude };
+  };
+
+  const getFCMToken = async () => {
     try {
-      fcmToken = await NotificationService.getPushTokenAsync();
+      return await NotificationService.getPushTokenAsync();
     } catch (e) {
-      console.log('Error obtaining FCM token', e);
+      Logger.warn('Error obtaining FCM token', e);
+      return undefined;
     }
+  };
 
-    showModal('loading', t('capture.preparingImage'), t('capture.optimizingFormat'));
-    let processedUri = uri;
+  const optimizeImage = async (uri: string) => {
     try {
       // @ts-ignore - Using deprecated API because the new contextual API causes a native crash in the current Expo SDK version
       const manipResult = await manipulateAsync(
@@ -174,10 +206,22 @@ export const useCapture = () => {
         [], // Empty actions will just bake the EXIF rotation into the image
         { compress: 0.9, format: SaveFormat.JPEG }
       );
-      processedUri = manipResult.uri;
+      return manipResult.uri;
     } catch (e) {
-      console.log('Error manipulando imagen (EXIF)', e);
+      Logger.warn('Error manipulando imagen (EXIF)', e);
+      return uri;
     }
+  };
+
+  const continueProcessing = async (uri: string) => {
+    showModal('loading', t('capture.obtainingLocation'), t('common.wait'));
+    const { locationStr, latitude, longitude } = await getLocationData();
+
+    showModal('loading', t('capture.preparingUpload'), t('capture.obtainingNotifications'));
+    const fcmToken = await getFCMToken();
+
+    showModal('loading', t('capture.preparingImage'), t('capture.optimizingFormat'));
+    const processedUri = await optimizeImage(uri);
 
     showModal('loading', t('capture.uploadingImage'), t('capture.secondsWait'));
     try {
@@ -193,8 +237,13 @@ export const useCapture = () => {
         }
       );
     } catch (error) {
-      showModal('error', t('common.error'), t('capture.uploadError'));
-      console.error(error);
+      const message = error instanceof Error ? error.message : '';
+      if (message === IMAGE_TOO_LARGE_CODE) {
+        showModal('error', t('common.error'), t('capture.imageTooLarge'));
+      } else {
+        showModal('error', t('common.error'), t('capture.uploadError'));
+      }
+      Logger.error('Error al subir imagen para análisis', error);
     }
   };
 
@@ -208,4 +257,3 @@ export const useCapture = () => {
     setIncludeExplainability,
   };
 };
-

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import i18n from '../i18n';
+import { Logger } from '../services/LoggerService';
 
 export type LanguageMode = 'en' | 'es' | 'system';
 
@@ -31,7 +32,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           applyLanguage('system');
         }
       } catch (error) {
-        console.error('Error loading language:', error);
+        Logger.error('Error loading language preference', error);
       }
     };
     loadLanguage();
@@ -57,7 +58,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       await AsyncStorage.setItem('appLanguage', mode);
     } catch (error) {
-      console.error('Error saving language:', error);
+      Logger.error('Error saving language preference', error);
     }
   }, []);
 

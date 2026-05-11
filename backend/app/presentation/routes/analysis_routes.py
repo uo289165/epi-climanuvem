@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from datetime import datetime
 import asyncio
 import anyio
@@ -17,11 +18,13 @@ from app.data.analysis_repository import CLOUD_NAME_MAPPING
 REVERSE_CLOUD_NAME_MAPPING = {v: k for k, v in CLOUD_NAME_MAPPING.items()}
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 USER_ID_NOT_FOUND_MSG = "User ID not found in token"
 UPLOADS_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
+MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 
-@router.post("/upload", responses={401: {"description": "Unauthorized"}})
+@router.post("/upload", responses={401: {"description": "Unauthorized"}, 413: {"description": "Payload Too Large"}})
 async def upload_image(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -45,6 +48,15 @@ async def upload_image(
     file_path = os.path.join(user_uploads_dir, unique_filename)
     
     content = await file.read()
+    if len(content) > MAX_IMAGE_SIZE_BYTES:
+        logger.warning(
+            "Image upload rejected due to size limit for uid=%s size_bytes=%s max_bytes=%s",
+            uid,
+            len(content),
+            MAX_IMAGE_SIZE_BYTES,
+        )
+        raise HTTPException(status_code=413, detail="IMAGE_TOO_LARGE_MAX_5MB")
+
     async with await anyio.open_file(file_path, "wb") as f:
         await f.write(content)
         
@@ -72,6 +84,7 @@ async def upload_image(
     
     task = AnalysisTask(analysis_id=analysis_id, file_path=file_path, fcm_token=fcm_token, explainability=include_explainability)
     await analysis_queue.put(task)
+    logger.info("Queued new analysis task analysis_id=%s uid=%s", analysis_id, uid)
     
     return {
         "message": "Imagen recibida correctamente. Iniciando análisis...",
@@ -197,7 +210,7 @@ def _remove_analysis_file(image_path):
         try:
             os.remove(file_path)
         except Exception as e:
-            print(f"Error removing file {file_path}: {e}")
+            logger.error("Error removing analysis file at %s: %s", file_path, e)
 
 @router.delete("/user-data", responses={401: {"description": "Unauthorized"}})
 def delete_user_data(
@@ -220,6 +233,7 @@ def delete_user_data(
         db.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": row.id})
         
     db.commit()
+    logger.info("Deleted all analysis data for uid=%s", uid)
     
     return {"message": "Datos de usuario eliminados correctamente."}
 
@@ -244,6 +258,7 @@ def delete_single_analysis(
     db.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": analysis_id})
     db.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": analysis_id})
     db.commit()
+    logger.info("Deleted single analysis analysis_id=%s uid=%s", analysis_id, uid)
     
     return {"message": "Análisis eliminado correctamente."}
 
@@ -268,5 +283,6 @@ def cancel_analysis(
         
     db.execute(text("UPDATE analysis SET status = 'cancelled' WHERE id = :id"), {"id": analysis_id})
     db.commit()
+    logger.info("Cancelled analysis analysis_id=%s uid=%s", analysis_id, uid)
     
     return {"message": "Análisis cancelado correctamente."}
