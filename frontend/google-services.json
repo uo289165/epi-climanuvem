@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "404226456428-b156s7roghopkjk9spbr40or3e1t07tq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.friede.climanuvem",
+            "certificate_hash": "a563017fcf074f11d080ee0fbe5448cee6ebe096"
+          }
+        },
+        {
           "client_id": "404226456428-c6recu1udv9htd5t4kjnfoqpr9lgtfgj.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.friede.climanuvem",
             "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "404226456428-p02a1iu1cdqv55p0e3lv6vbr6v0uhhfc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.friede.climanuvem",
+            "certificate_hash": "a4274cd7fc9276e0df416765dbd84b7c3e8f25cf"
           }
         },
         {

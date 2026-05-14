@@ -15,6 +15,7 @@ interface ProfileViewProps {
     userName: string;
     userEmail: string;
     newName: string;
+    isGuest: boolean;
     setNewName: (name: string) => void;
     saving: boolean;
     deleting: boolean;
@@ -117,11 +118,19 @@ const DangerZoneSection = ({ confirmDeleteAccount, deleting, t, styles }: any) =
   </View>
 );
 
+const GuestInfoSection = ({ t, styles }: any) => (
+  <View style={styles.card}>
+    <Text style={styles.sectionTitle}>{t('profile.guestPreferencesTitle')}</Text>
+    <Text style={styles.warningText}>{t('profile.guestPreferencesDesc')}</Text>
+  </View>
+);
+
 export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
   const {
     userName,
     userEmail,
     newName,
+    isGuest,
     setNewName,
     saving,
     deleting,
@@ -143,7 +152,9 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
   const { t } = useTranslation();
   const styles = getProfileViewStyles(theme);
 
-  const hasNameChanged = newName.trim() !== userName && newName.trim().length > 0;
+  const trimmedName = newName.trim();
+  const hasValidNameLength = trimmedName.length >= 3 && trimmedName.length <= 20;
+  const hasNameChanged = trimmedName !== userName && hasValidNameLength;
 
   return (
     <View style={styles.container}>
@@ -154,35 +165,43 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
           <View style={styles.avatarCircle}>
             <Ionicons name="person" size={48} color={theme.colors.primary} />
           </View>
-          <ThemedText style={styles.emailText}>{userEmail}</ThemedText>
+          <ThemedText style={styles.emailText}>
+            {isGuest ? userName : userEmail}
+          </ThemedText>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('profile.username')}</Text>
-          <TextInput
-            style={styles.input}
-            value={newName}
-            onChangeText={setNewName}
-            placeholder={t('profile.usernamePlaceholder')}
-            placeholderTextColor="#999"
-          />
-          <View style={styles.saveAction}>
-            <AuthButton
-              title={saving ? t('common.saving') : t('common.save')}
-              onPress={handleUpdateName}
-              variant="primary"
-              disabled={!hasNameChanged || saving}
-              textStyle={{ fontSize: 14 }}
-              style={{ paddingVertical: 12, paddingHorizontal: 20 }}
+        {isGuest ? (
+          <GuestInfoSection t={t} styles={styles} />
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>{t('profile.username')}</Text>
+            <TextInput
+              style={styles.input}
+              value={newName}
+              onChangeText={setNewName}
+              placeholder={t('profile.usernamePlaceholder')}
+              placeholderTextColor="#999"
             />
+            <View style={styles.saveAction}>
+              <AuthButton
+                title={saving ? t('common.saving') : t('common.save')}
+                onPress={handleUpdateName}
+                variant="primary"
+                disabled={!hasNameChanged || saving}
+                textStyle={{ fontSize: 14 }}
+                style={{ paddingVertical: 12, paddingHorizontal: 20 }}
+              />
+            </View>
           </View>
-        </View>
+        )}
 
         <AppearanceSection theme={theme} themeMode={themeMode} setThemeMode={setThemeMode} t={t} styles={styles} />
 
         <LanguageSection theme={theme} languageMode={languageMode} setLanguageMode={setLanguageMode} t={t} styles={styles} />
 
-        <DangerZoneSection confirmDeleteAccount={confirmDeleteAccount} deleting={deleting} t={t} styles={styles} />
+        {!isGuest && (
+          <DangerZoneSection confirmDeleteAccount={confirmDeleteAccount} deleting={deleting} t={t} styles={styles} />
+        )}
       </ScrollView>
 
       {/* Modal de confirmación de borrado */}
@@ -218,5 +237,3 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
     </View>
   );
 }
-
-

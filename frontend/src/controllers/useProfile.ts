@@ -12,6 +12,7 @@ export const useProfile = () => {
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [newName, setNewName] = useState<string>('');
+  const [isGuest, setIsGuest] = useState<boolean>(false);
   
   const [saving, setSaving] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
@@ -24,26 +25,46 @@ export const useProfile = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && !user.isAnonymous) {
-        setUserName(user.displayName || '');
-        setNewName(user.displayName || '');
-        setUserEmail(user.email || '');
-      } else {
+      if (!user) {
         router.replace('/home' as any);
+        return;
       }
+
+      if (user.isAnonymous) {
+        setIsGuest(true);
+        setUserName(t('common.guest'));
+        setNewName('');
+        setUserEmail('');
+        return;
+      }
+
+      setIsGuest(false);
+      setUserName(user.displayName || '');
+      setNewName(user.displayName || '');
+      setUserEmail(user.email || '');
     });
     return unsubscribe;
-  }, []);
+  }, [t]);
 
   const handleUpdateName = async () => {
-    if (!newName.trim() || newName.trim() === userName) return;
+    const trimmedName = newName.trim();
+
+    if (isGuest || !trimmedName || trimmedName === userName) return;
+
+    if (trimmedName.length < 3 || trimmedName.length > 20) {
+      setModalType('error');
+      setModalTitle(t('common.error'));
+      setModalMessage(t('auth.usernameLength'));
+      setModalVisible(true);
+      return;
+    }
     
     setSaving(true);
-    const result = await AuthService.updateUserName(newName.trim());
+    const result = await AuthService.updateUserName(trimmedName);
     setSaving(false);
     
     if (result.success) {
-      setUserName(newName.trim());
+      setUserName(trimmedName);
       setModalType('success');
       setModalTitle(t('profile.updated'));
       setModalMessage(t('profile.updatedDesc'));
@@ -57,6 +78,7 @@ export const useProfile = () => {
   };
 
   const confirmDeleteAccount = () => {
+    if (isGuest) return;
     setShowDeleteConfirm(true);
   };
 
@@ -65,6 +87,8 @@ export const useProfile = () => {
   };
 
   const proceedWithDelete = async () => {
+    if (isGuest) return;
+
     setShowDeleteConfirm(false);
     setDeleting(true);
     
@@ -105,6 +129,7 @@ export const useProfile = () => {
     userName,
     userEmail,
     newName,
+    isGuest,
     setNewName,
     saving,
     deleting,

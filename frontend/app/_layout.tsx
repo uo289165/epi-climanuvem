@@ -25,7 +25,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Configurar el color de fondo a nivel de sistema para evitar parpadeos negros/vacíos
-    SystemUI.setBackgroundColorAsync('#f8f9fa');
+    SystemUI.setBackgroundColorAsync('#FFFFFF');
 
     // Esperar a la resolución del estado de autenticación (AsyncStorage) antes de esconder el Splash Screen
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -54,7 +54,7 @@ export default function RootLayout() {
                   headerShown: false,
                   animation: 'slide_from_right',
                   animationTypeForReplace: 'push',
-                  contentStyle: { backgroundColor: '#f8f9fa' },
+                  contentStyle: { backgroundColor: '#FFFFFF' },
                   // @ts-ignore
                   detachPreviousScreen: false,
                 } as any}>

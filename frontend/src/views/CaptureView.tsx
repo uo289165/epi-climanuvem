@@ -116,7 +116,10 @@ export function CaptureView({ controller }: CaptureViewProps) {
 
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={20} color={theme.colors.textSecondary} style={{marginRight: 8}} />
-          <Text style={styles.infoText}>{t('capture.formatInfo')}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoText}>{t('capture.formatInfo')}</Text>
+            <Text style={styles.infoText}>{t('capture.maxSizeInfo')}</Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -131,5 +134,4 @@ export function CaptureView({ controller }: CaptureViewProps) {
     </View>
   );
 }
-
 

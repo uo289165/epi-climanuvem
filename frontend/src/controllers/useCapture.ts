@@ -241,7 +241,7 @@ export const useCapture = () => {
       if (message === IMAGE_TOO_LARGE_CODE) {
         showModal('error', t('common.error'), t('capture.imageTooLarge'));
       } else {
-        showModal('error', t('common.error'), t('capture.uploadError'));
+        showModal('error', t('common.error'), message || t('capture.uploadError'));
       }
       Logger.error('Error al subir imagen para análisis', error);
     }

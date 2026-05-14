@@ -7,28 +7,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { useTranslation } from 'react-i18next';
 import { HistoryModal } from '@/components/ui/HistoryModal';
-import { StatusModal, ModalType } from '@/components/ui/StatusModal';
 import { AnalysisHistoryItem } from '@/src/services/AnalysisService';
 
 interface HomeViewProps {
-  readonly controller: {
+    readonly controller: {
     readonly handleLogout: () => void;
     readonly handleNavigateToCapture: () => void;
     readonly handleNavigateToProfile: () => void;
-    readonly handleTestBackend: () => void;
-    readonly closeModal: () => void;
     readonly historyModalVisible: boolean;
-    readonly modalVisible: boolean;
-    readonly modalType: ModalType;
-    readonly modalTitle: string;
-    readonly modalMessage: string;
     readonly history: AnalysisHistoryItem[];
     readonly loadingHistory: boolean;
     readonly loadHistory: (forceRefresh?: boolean) => void;
     readonly closeHistoryModal: () => void;
     readonly initialSelectedAnalysisId?: string | null;
     readonly userName: string;
-    readonly isGuest: boolean;
   };
 }
 
@@ -37,20 +29,13 @@ export function HomeView({ controller }: HomeViewProps) {
     handleLogout, 
     handleNavigateToCapture,
     handleNavigateToProfile,
-    handleTestBackend,
-    closeModal,
     historyModalVisible,
-    modalVisible,
-    modalType,
-    modalTitle,
-    modalMessage,
     history,
     loadingHistory,
     loadHistory,
     closeHistoryModal,
     initialSelectedAnalysisId,
-    userName,
-    isGuest
+    userName
   } = controller;
 
   const { theme } = useTheme();
@@ -65,7 +50,6 @@ export function HomeView({ controller }: HomeViewProps) {
         <TouchableOpacity 
           style={styles.welcomeCard}
           onPress={handleNavigateToProfile}
-          disabled={isGuest}
           activeOpacity={0.7}
         >
           <View style={styles.welcomeHeader}>
@@ -76,9 +60,7 @@ export function HomeView({ controller }: HomeViewProps) {
               <ThemedText type="title" style={styles.title}>{t('home.welcome')}</ThemedText>
               <ThemedText style={styles.subtitle}>{userName}</ThemedText>
             </View>
-            {!isGuest && (
-              <Ionicons name="chevron-forward" size={24} color={theme.colors.border} />
-            )}
+            <Ionicons name="chevron-forward" size={24} color={theme.colors.border} />
           </View>
         </TouchableOpacity>
 
@@ -106,17 +88,6 @@ export function HomeView({ controller }: HomeViewProps) {
           <Ionicons name="chevron-forward" size={20} color={theme.colors.border} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionCard} onPress={handleTestBackend}>
-          <View style={[styles.iconContainer, { backgroundColor: theme.mode === 'dark' ? 'rgba(76, 175, 80, 0.1)' : '#E8F5E9' }]}>
-            <Ionicons name="flask" size={28} color={theme.colors.success} />
-          </View>
-          <View style={styles.actionTextContainer}>
-            <Text style={styles.actionTitle}>{t('home.testBackend')}</Text>
-            <Text style={styles.actionDescription}>{t('home.testDesc')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.border} />
-        </TouchableOpacity>
-
         <TouchableOpacity style={[styles.actionCard, styles.logoutCard]} onPress={handleLogout}>
           <View style={[styles.iconContainer, { backgroundColor: theme.mode === 'dark' ? 'rgba(244, 67, 54, 0.1)' : '#FFEBEE' }]}>
             <Ionicons name="log-out" size={28} color={theme.colors.danger} />
@@ -126,6 +97,7 @@ export function HomeView({ controller }: HomeViewProps) {
             <Text style={styles.actionDescription}>{t('home.logoutDesc')}</Text>
           </View>
         </TouchableOpacity>
+
       </ScrollView>
 
       <HistoryModal 
@@ -135,14 +107,6 @@ export function HomeView({ controller }: HomeViewProps) {
         loading={loadingHistory}
         onRefresh={() => loadHistory(true)}
         initialSelectedAnalysisId={initialSelectedAnalysisId}
-      />
-
-      <StatusModal
-        visible={modalVisible}
-        type={modalType}
-        title={modalTitle}
-        message={modalMessage}
-        onClose={closeModal}
       />
     </View>
   );

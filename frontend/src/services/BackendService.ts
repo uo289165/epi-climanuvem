@@ -4,6 +4,21 @@ import { Logger } from '@/src/services/LoggerService';
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 const IMAGE_TOO_LARGE_CODE = 'IMAGE_TOO_LARGE_MAX_5MB';
 
+const backendUrl = (path: string) => `${BACKEND_URL}${path}`;
+
+const logBackendRequest = (method: string, path: string) => {
+  Logger.info('Backend request', { method, url: backendUrl(path) });
+};
+
+const isNetworkError = (error: any): boolean => {
+  const message = String(error?.message || '');
+  return error instanceof TypeError || message.includes('Network request failed') || message.includes('Failed to fetch');
+};
+
+const backendReachabilityMessage = (path: string) =>
+  `No se pudo contactar con el backend en ${backendUrl(path)}. ` +
+  `Verifica desde el navegador del movil ${BACKEND_URL}/ping, que el movil este en la misma red y que el firewall permita el puerto 8000.`;
+
 const mapBackendError = async (response: Response): Promise<Error> => {
   const errorData = await response.json().catch(() => ({ detail: 'Error de red desconocido' }));
   const detail = typeof errorData?.detail === 'string' ? errorData.detail : '';
@@ -33,7 +48,8 @@ export const BackendService = {
       const token = await user.getIdToken(true);
       Logger.debug('Token obtenido; enviando request a endpoint de prueba');
 
-      const response = await fetch(`${BACKEND_URL}/test`, {
+      logBackendRequest('GET', '/test');
+      const response = await fetch(backendUrl('/test'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -53,8 +69,12 @@ export const BackendService = {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        Logger.error('La petición de prueba excedió el tiempo de espera de 10s');
-        throw new Error('La petición excedió el tiempo de espera. Verifica que el backend sea alcanzable.');
+        Logger.error('La petición de prueba excedió el tiempo de espera de 10s', { backendUrl: BACKEND_URL });
+        throw new Error(backendReachabilityMessage('/test'));
+      }
+      if (isNetworkError(error)) {
+        Logger.error('Error de red en BackendService.testEndpoint', { backendUrl: BACKEND_URL, error });
+        throw new Error(backendReachabilityMessage('/test'));
       }
       Logger.error('Error en BackendService.testEndpoint', error);
       throw error;
@@ -94,7 +114,8 @@ export const BackendService = {
       }
       formData.append('include_explainability', String(includeExplainability));
 
-      const response = await fetch(`${BACKEND_URL}/analysis/upload`, {
+      logBackendRequest('POST', '/analysis/upload');
+      const response = await fetch(backendUrl('/analysis/upload'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -109,6 +130,10 @@ export const BackendService = {
 
       return await response.json();
     } catch (error: any) {
+      if (isNetworkError(error)) {
+        Logger.error('Error de red en BackendService.uploadImage', { backendUrl: BACKEND_URL, error });
+        throw new Error(backendReachabilityMessage('/analysis/upload'));
+      }
       Logger.error('Error en BackendService.uploadImage', error);
       throw error;
     }
@@ -129,7 +154,8 @@ export const BackendService = {
       }
 
       const token = await user.getIdToken(true);
-      const response = await fetch(`${BACKEND_URL}/analysis/history`, {
+      logBackendRequest('GET', '/analysis/history');
+      const response = await fetch(backendUrl('/analysis/history'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -154,7 +180,12 @@ export const BackendService = {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('La petición excedió el tiempo de espera al obtener historial.');
+        Logger.error('La petición de historial excedió el tiempo de espera', { backendUrl: BACKEND_URL });
+        throw new Error(backendReachabilityMessage('/analysis/history'));
+      }
+      if (isNetworkError(error)) {
+        Logger.error('Error de red en BackendService.getAnalysisHistory', { backendUrl: BACKEND_URL, error });
+        throw new Error(backendReachabilityMessage('/analysis/history'));
       }
       Logger.error('Error en BackendService.getAnalysisHistory', error);
       throw error;
@@ -176,7 +207,8 @@ export const BackendService = {
       }
 
       const token = await user.getIdToken(true);
-      const response = await fetch(`${BACKEND_URL}/analysis/user-data`, {
+      logBackendRequest('DELETE', '/analysis/user-data');
+      const response = await fetch(backendUrl('/analysis/user-data'), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -194,7 +226,12 @@ export const BackendService = {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('La petición excedió el tiempo de espera al eliminar historial.');
+        Logger.error('La petición de borrar datos excedió el tiempo de espera', { backendUrl: BACKEND_URL });
+        throw new Error(backendReachabilityMessage('/analysis/user-data'));
+      }
+      if (isNetworkError(error)) {
+        Logger.error('Error de red en BackendService.deleteUserData', { backendUrl: BACKEND_URL, error });
+        throw new Error(backendReachabilityMessage('/analysis/user-data'));
       }
       Logger.error('Error en BackendService.deleteUserData', error);
       throw error;
@@ -216,7 +253,9 @@ export const BackendService = {
       }
 
       const token = await user.getIdToken(true);
-      const response = await fetch(`${BACKEND_URL}/analysis/${analysisId}`, {
+      const path = `/analysis/${analysisId}`;
+      logBackendRequest('DELETE', path);
+      const response = await fetch(backendUrl(path), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -234,7 +273,12 @@ export const BackendService = {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('La petición excedió el tiempo de espera al eliminar análisis.');
+        Logger.error('La petición de eliminar análisis excedió el tiempo de espera', { backendUrl: BACKEND_URL });
+        throw new Error(backendReachabilityMessage('/analysis/{analysisId}'));
+      }
+      if (isNetworkError(error)) {
+        Logger.error('Error de red en BackendService.deleteAnalysis', { backendUrl: BACKEND_URL, error });
+        throw new Error(backendReachabilityMessage('/analysis/{analysisId}'));
       }
       Logger.error('Error en BackendService.deleteAnalysis', error);
       throw error;
@@ -256,7 +300,9 @@ export const BackendService = {
       }
 
       const token = await user.getIdToken(true);
-      const response = await fetch(`${BACKEND_URL}/analysis/${analysisId}/cancel`, {
+      const path = `/analysis/${analysisId}/cancel`;
+      logBackendRequest('PATCH', path);
+      const response = await fetch(backendUrl(path), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -274,7 +320,12 @@ export const BackendService = {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('La petición excedió el tiempo de espera al cancelar análisis.');
+        Logger.error('La petición de cancelar análisis excedió el tiempo de espera', { backendUrl: BACKEND_URL });
+        throw new Error(backendReachabilityMessage('/analysis/{analysisId}/cancel'));
+      }
+      if (isNetworkError(error)) {
+        Logger.error('Error de red en BackendService.cancelAnalysis', { backendUrl: BACKEND_URL, error });
+        throw new Error(backendReachabilityMessage('/analysis/{analysisId}/cancel'));
       }
       Logger.error('Error en BackendService.cancelAnalysis', error);
       throw error;
