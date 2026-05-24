@@ -13,7 +13,7 @@ import { LanguageProvider } from '@/src/contexts/LanguageContext';
 
 import * as SystemUI from 'expo-system-ui';
 
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/src/config/firebaseConfig';
 
 
@@ -28,16 +28,21 @@ export default function RootLayout() {
     SystemUI.setBackgroundColorAsync('#FFFFFF');
 
     // Esperar a la resolución del estado de autenticación (AsyncStorage) antes de esconder el Splash Screen
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user?.isAnonymous || user?.emailVerified) {
         // Redirigir y en el frame siguiente ocultar el splash screen
         setTimeout(() => {
           router.replace('/home' as any);
           SplashScreen.hideAsync();
         }, 0);
-      } else {
-        SplashScreen.hideAsync();
+        return;
       }
+
+      if (user) {
+        await signOut(auth);
+      }
+
+      SplashScreen.hideAsync();
     });
 
     return unsubscribe;

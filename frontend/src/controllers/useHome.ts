@@ -18,8 +18,7 @@ export const useHome = () => {
         setUserName(user.isAnonymous ? t('common.guest') : (user.displayName || user.email || t('common.user')));
         setIsGuest(user.isAnonymous);
       } else {
-        setUserName(t('common.guest'));
-        setIsGuest(true);
+        router.replace('/' as any);
       }
     }, [t])
   );
