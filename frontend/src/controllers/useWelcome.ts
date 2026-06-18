@@ -8,6 +8,11 @@ export const useWelcome = () => {
   };
 
   const handleContinueAsGuest = async () => {
+    if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+      router.replace('/home' as any);
+      return;
+    }
+
     const response = await AuthService.loginAnonymously();
     if (response.success) {
       router.replace('/home' as any);

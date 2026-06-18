@@ -46,6 +46,7 @@ export const AuthButton = ({
         style
       ]} 
       onPress={onPress}
+      accessibilityRole="button"
       disabled={loading || disabled}
     >
       {loading ? (
@@ -73,5 +74,4 @@ export const AuthButton = ({
     </TouchableOpacity>
   );
 };
-
 

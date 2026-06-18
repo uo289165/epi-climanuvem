@@ -50,6 +50,7 @@ export function HomeView({ controller }: HomeViewProps) {
         <TouchableOpacity 
           style={styles.welcomeCard}
           onPress={handleNavigateToProfile}
+          accessibilityRole="button"
           activeOpacity={0.7}
         >
           <View style={styles.welcomeHeader}>
@@ -66,7 +67,7 @@ export function HomeView({ controller }: HomeViewProps) {
 
         <Text style={styles.sectionTitle}>{t('home.quickActions')}</Text>
         
-        <TouchableOpacity style={styles.actionCard} onPress={handleNavigateToCapture}>
+        <TouchableOpacity style={styles.actionCard} onPress={handleNavigateToCapture} accessibilityRole="button">
           <View style={[styles.iconContainer, { backgroundColor: theme.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : '#E3F2FD' }]}>
             <Ionicons name="camera" size={28} color={theme.colors.primary} />
           </View>
@@ -77,7 +78,7 @@ export function HomeView({ controller }: HomeViewProps) {
           <Ionicons name="chevron-forward" size={20} color={theme.colors.border} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionCard} onPress={() => loadHistory()}>
+        <TouchableOpacity style={styles.actionCard} onPress={() => loadHistory()} accessibilityRole="button">
           <View style={[styles.iconContainer, { backgroundColor: theme.mode === 'dark' ? 'rgba(156, 39, 176, 0.1)' : '#F3E5F5' }]}>
             <Ionicons name="list" size={28} color={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'} />
           </View>
@@ -88,7 +89,7 @@ export function HomeView({ controller }: HomeViewProps) {
           <Ionicons name="chevron-forward" size={20} color={theme.colors.border} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.actionCard, styles.logoutCard]} onPress={handleLogout}>
+        <TouchableOpacity style={[styles.actionCard, styles.logoutCard]} onPress={handleLogout} accessibilityRole="button">
           <View style={[styles.iconContainer, { backgroundColor: theme.mode === 'dark' ? 'rgba(244, 67, 54, 0.1)' : '#FFEBEE' }]}>
             <Ionicons name="log-out" size={28} color={theme.colors.danger} />
           </View>

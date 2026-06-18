@@ -26,6 +26,14 @@ export const useProfile = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
+        if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+          setIsGuest(true);
+          setUserName(t('common.guest'));
+          setNewName('');
+          setUserEmail('');
+          return;
+        }
+
         router.replace('/home' as any);
         return;
       }

@@ -13,6 +13,12 @@ export const useHome = () => {
 
   useFocusEffect(
     useCallback(() => {
+      if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+        setUserName(t('common.guest'));
+        setIsGuest(true);
+        return;
+      }
+
       const user = auth.currentUser;
       if (user) {
         setUserName(user.isAnonymous ? t('common.guest') : (user.displayName || user.email || t('common.user')));
@@ -25,6 +31,11 @@ export const useHome = () => {
 
 
   const handleLogout = async () => {
+    if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+      router.replace('/');
+      return;
+    }
+
     await AuthService.logout();
     router.replace('/');
   };

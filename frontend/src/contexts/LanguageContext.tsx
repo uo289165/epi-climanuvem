@@ -16,6 +16,13 @@ const LanguageContext = createContext<LanguageContextType>({
   setLanguageMode: () => {},
 });
 
+const getConfiguredLanguage = () => {
+  const configuredLanguage = process.env.EXPO_PUBLIC_DEFAULT_LANGUAGE;
+  return configuredLanguage === 'es' || configuredLanguage === 'en'
+    ? configuredLanguage
+    : undefined;
+};
+
 export const useLanguage = () => useContext(LanguageContext);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -39,6 +46,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const applyLanguage = (mode: LanguageMode) => {
+    const configuredLanguage = getConfiguredLanguage();
+    if (configuredLanguage) {
+      i18n.changeLanguage(configuredLanguage);
+      return;
+    }
+
     let lngToSet = mode;
     if (mode === 'system') {
       const locales = Localization.getLocales();

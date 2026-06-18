@@ -24,6 +24,12 @@ USER_ID_NOT_FOUND_MSG = "User ID not found in token"
 UPLOADS_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 
+@router.get("/upload", responses={403: {"description": "Forbidden"}, 405: {"description": "Method Not Allowed"}})
+def upload_image_get_requires_auth(
+    user: Annotated[dict, Depends(get_current_user)]
+):
+    raise HTTPException(status_code=405, detail="Use POST to upload an image")
+
 @router.post("/upload", responses={401: {"description": "Unauthorized"}, 413: {"description": "Payload Too Large"}})
 async def upload_image(
     user: Annotated[dict, Depends(get_current_user)],
@@ -286,3 +292,9 @@ def cancel_analysis(
     logger.info("Cancelled analysis analysis_id=%s uid=%s", analysis_id, uid)
     
     return {"message": "Análisis cancelado correctamente."}
+
+@router.get("/{analysis_id}/cancel", responses={401: {"description": "Unauthorized"}, 405: {"description": "Method Not Allowed"}})
+def cancel_analysis_get_requires_auth(
+    analysis_id: int
+):
+    raise HTTPException(status_code=403, detail="Not authenticated")

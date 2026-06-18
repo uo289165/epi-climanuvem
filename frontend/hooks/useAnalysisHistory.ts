@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, Platform } from 'react-native';
 import { AnalysisService, AnalysisHistoryItem } from '@/src/services/AnalysisService';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/src/config/firebaseConfig';
@@ -7,6 +7,7 @@ import * as Notifications from 'expo-notifications';
 import { Logger } from '@/src/services/LoggerService';
 
 export const useAnalysisHistory = () => {
+  const notificationsEnabled = Platform.OS !== 'web' && process.env.EXPO_PUBLIC_TEST_MODE !== 'true';
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
@@ -16,9 +17,16 @@ export const useAnalysisHistory = () => {
   
   // Track to avoid processing the same notification repeatedly
   const [processedNotificationId, setProcessedNotificationId] = useState<string | null>(null);
-  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  const lastNotificationResponse = notificationsEnabled
+    ? Notifications.useLastNotificationResponse()
+    : null;
 
   useEffect(() => {
+    if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+      setIsLoggedIn(true);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsLoggedIn(!!user);
       if (!user) {
@@ -67,6 +75,10 @@ export const useAnalysisHistory = () => {
 
   // Manage foreground notifications automatically
   useEffect(() => {
+    if (!notificationsEnabled) {
+      return;
+    }
+
     const notificationListener = Notifications.addNotificationReceivedListener(notification => {
       if (isLoggedIn) {
         loadHistory(true, false); // Reload history but do NOT auto-open modal!
@@ -76,7 +88,7 @@ export const useAnalysisHistory = () => {
     return () => {
       notificationListener.remove();
     };
-  }, [isLoggedIn, loadHistory]);
+  }, [isLoggedIn, loadHistory, notificationsEnabled]);
 
   // Manage manual refresh events
   useEffect(() => {

@@ -27,6 +27,11 @@ export default function RootLayout() {
     // Configurar el color de fondo a nivel de sistema para evitar parpadeos negros/vacíos
     SystemUI.setBackgroundColorAsync('#FFFFFF');
 
+    if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+      SplashScreen.hideAsync();
+      return;
+    }
+
     // Esperar a la resolución del estado de autenticación (AsyncStorage) antes de esconder el Splash Screen
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user?.isAnonymous || user?.emailVerified) {

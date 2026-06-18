@@ -12,6 +12,11 @@ const resources = {
 
 // Obtenemos el idioma del sistema
 const getSystemLocale = () => {
+  const configuredLanguage = process.env.EXPO_PUBLIC_DEFAULT_LANGUAGE;
+  if (configuredLanguage === 'es' || configuredLanguage === 'en') {
+    return configuredLanguage;
+  }
+
   const locales = Localization.getLocales();
   if (locales && locales.length > 0) {
     const languageCode = locales[0].languageCode;
