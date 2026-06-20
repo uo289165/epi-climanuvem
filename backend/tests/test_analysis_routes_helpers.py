@@ -1,7 +1,10 @@
 from datetime import datetime
 from types import SimpleNamespace
 
+import pytest
+
 from app.presentation.routes.analysis_routes import (
+    _validate_uploaded_jpeg,
     _initialize_analysis_record,
     _update_analysis_results,
 )
@@ -74,3 +77,29 @@ def test_update_analysis_results_deduplicates_clouds_forecasts_and_warnings():
     assert results["warnings"] == [
         {"type": "cumulus", "text": "Sin avisos", "level": 0}
     ]
+
+
+def test_validate_uploaded_jpeg_rejects_empty_file():
+    file = SimpleNamespace(filename="empty.jpg", content_type="image/jpeg")
+
+    with pytest.raises(Exception) as exc_info:
+        _validate_uploaded_jpeg(file, b"", "test-user")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "IMAGE_EMPTY"
+
+
+def test_validate_uploaded_jpeg_rejects_non_jpg_file():
+    file = SimpleNamespace(filename="not-a-jpg.txt", content_type="text/plain")
+
+    with pytest.raises(Exception) as exc_info:
+        _validate_uploaded_jpeg(file, b"not-a-jpeg-image", "test-user")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "INVALID_IMAGE_FORMAT_JPG_ONLY"
+
+
+def test_validate_uploaded_jpeg_accepts_jpg_signature_extension_and_content_type():
+    file = SimpleNamespace(filename="cloud.jpg", content_type="image/jpeg")
+
+    _validate_uploaded_jpeg(file, b"\xff\xd8\xff\xe0valid-jpeg-like-content", "test-user")

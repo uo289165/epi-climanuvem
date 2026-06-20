@@ -23,6 +23,38 @@ logger = logging.getLogger(__name__)
 USER_ID_NOT_FOUND_MSG = "User ID not found in token"
 UPLOADS_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
+JPEG_SIGNATURE = b"\xff\xd8\xff"
+ALLOWED_JPEG_EXTENSIONS = {".jpg", ".jpeg"}
+JPEG_CONTENT_TYPE = "image/jpeg"
+
+def _validate_uploaded_jpeg(file: UploadFile, content: bytes, uid: str):
+    if len(content) == 0:
+        logger.warning("Image upload rejected because file is empty for uid=%s filename=%s", uid, file.filename)
+        raise HTTPException(status_code=400, detail="IMAGE_EMPTY")
+
+    if len(content) > MAX_IMAGE_SIZE_BYTES:
+        logger.warning(
+            "Image upload rejected due to size limit for uid=%s size_bytes=%s max_bytes=%s",
+            uid,
+            len(content),
+            MAX_IMAGE_SIZE_BYTES,
+        )
+        raise HTTPException(status_code=413, detail="IMAGE_TOO_LARGE_MAX_5MB")
+
+    file_ext = os.path.splitext(file.filename or "")[1].lower()
+    content_type = (file.content_type or "").lower()
+    has_valid_extension = file_ext in ALLOWED_JPEG_EXTENSIONS
+    has_valid_content_type = not content_type or content_type == JPEG_CONTENT_TYPE
+    has_jpeg_signature = content.startswith(JPEG_SIGNATURE)
+
+    if not (has_valid_extension and has_valid_content_type and has_jpeg_signature):
+        logger.warning(
+            "Image upload rejected due to invalid JPG format for uid=%s filename=%s content_type=%s",
+            uid,
+            file.filename,
+            file.content_type,
+        )
+        raise HTTPException(status_code=400, detail="INVALID_IMAGE_FORMAT_JPG_ONLY")
 
 @router.get("/upload", responses={403: {"description": "Forbidden"}, 405: {"description": "Method Not Allowed"}})
 def upload_image_get_requires_auth(
@@ -30,7 +62,7 @@ def upload_image_get_requires_auth(
 ):
     raise HTTPException(status_code=405, detail="Use POST to upload an image")
 
-@router.post("/upload", responses={401: {"description": "Unauthorized"}, 413: {"description": "Payload Too Large"}})
+@router.post("/upload", responses={400: {"description": "Invalid image"}, 401: {"description": "Unauthorized"}, 413: {"description": "Payload Too Large"}})
 async def upload_image(
     user: Annotated[dict, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -45,23 +77,16 @@ async def upload_image(
     if not uid:
         raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
 
-    file_ext = file.filename.split(".")[-1] if file.filename else "jpg"
+    content = await file.read()
+    _validate_uploaded_jpeg(file, content, uid)
+
+    file_ext = os.path.splitext(file.filename)[1].lower().lstrip(".")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     unique_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}.{file_ext}"
     
     user_uploads_dir = os.path.join(UPLOADS_BASE_DIR, uid)
     await anyio.Path(user_uploads_dir).mkdir(parents=True, exist_ok=True)
     file_path = os.path.join(user_uploads_dir, unique_filename)
-    
-    content = await file.read()
-    if len(content) > MAX_IMAGE_SIZE_BYTES:
-        logger.warning(
-            "Image upload rejected due to size limit for uid=%s size_bytes=%s max_bytes=%s",
-            uid,
-            len(content),
-            MAX_IMAGE_SIZE_BYTES,
-        )
-        raise HTTPException(status_code=413, detail="IMAGE_TOO_LARGE_MAX_5MB")
 
     async with await anyio.open_file(file_path, "wb") as f:
         await f.write(content)
