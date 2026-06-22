@@ -1,50 +1,37 @@
-# Welcome to your Expo app 👋
+# Frontend ClimaNuvem
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicacion movil Expo/React Native de ClimaNuvem. Incluye autenticacion con Firebase, captura o seleccion de imagenes, subida al backend, historial de analisis, notificaciones, idioma espanol/ingles y tema claro/oscuro.
 
-## Get started
+## Configuracion
 
-1. Install dependencies
+Define la URL del backend antes de iniciar Expo:
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```env
+EXPO_PUBLIC_BACKEND_URL=http://localhost:8000
+EXPO_PUBLIC_TEST_MODE=false
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+En un dispositivo fisico, `EXPO_PUBLIC_BACKEND_URL` debe ser una direccion accesible desde el movil, por ejemplo la IP local del equipo donde se ejecuta el backend.
 
-## Learn more
+## Comandos
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm install
+npm start
+npm run android
+npm run ios
+npm run web
+npm run lint
+npm test
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Estructura
 
-## Join the community
+- `app/`: rutas gestionadas por Expo Router.
+- `src/views/`: pantallas principales.
+- `src/controllers/`: logica de cada pantalla.
+- `src/services/`: integracion con Firebase, backend, notificaciones y logging.
+- `components/`: componentes reutilizables de UI.
+- `assets/`: iconos, splash y recursos visuales de la app.
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Consulta el `README.md` de la raiz del proyecto para la configuracion completa de backend, base de datos, Ollama y Firebase.

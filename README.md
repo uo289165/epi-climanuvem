@@ -1,123 +1,171 @@
-# EPI-ClimaNuvem
+# ClimaNuvem
 
-## Demo project
+ClimaNuvem es una aplicacion movil para analizar fotografias de nubes. Permite tomar o seleccionar una imagen, enviarla al backend, clasificar los tipos de nubes detectados mediante un modelo multimodal servido con Ollama y consultar el historial de analisis desde la app.
 
-### Description
-The demo project is composed by two components: 
-- The backend component that uses the Oak and Deno to create a login endpoint   `api/login`, which can be accesed from the frontend. The backend has unitary and integration test cases(available into the test folder) and is available in the URL: [http://localhost:8080](http://localhost:8080)
-- The frontend component that uses Oak to serve a simple and minimal page, that uses the endpoint made available in the backend. The frontend is available in the following URL:  [http://localhost:5173](http://localhost:5173)
+## Funcionalidades
 
-The repository has configured a Continuous Integration (CI) pipeline that builds, executes the test cases and a static analysis tool to detect problems/bugs. 
+- Autenticacion con Firebase, incluyendo modo invitado.
+- Captura desde camara o seleccion desde galeria.
+- Subida de imagenes JPG de hasta 5 MB.
+- Registro opcional de ubicacion y coordenadas del analisis.
+- Analisis asincrono con cola en backend.
+- Clasificacion de tipos de nube y avisos asociados.
+- Explicabilidad opcional mediante cajas delimitadoras.
+- Historial de analisis por usuario.
+- Cancelacion de analisis en progreso.
+- Eliminacion de analisis individuales o de todos los datos del usuario.
+- Notificaciones push al finalizar o fallar un analisis.
+- Soporte de idioma espanol/ingles y tema claro/oscuro.
 
-### How to deploy
+## Arquitectura
 
-The easiest way to deploy the project in local is using Docker. In the repository root, there's a docker compose file (`docker-compose.yml`) that allows the deployment with a single command
+El proyecto esta dividido en dos aplicaciones principales:
 
-```bash
-docker compose up --build
+- `frontend/`: aplicacion Expo/React Native con Expo Router, Firebase Auth, camara, galeria, ubicacion, notificaciones e historial.
+- `backend/`: API FastAPI con PostgreSQL, Firebase Admin, cola asincrona de analisis y cliente Ollama.
+
+Flujo principal:
+
+1. El usuario inicia sesion o entra como invitado.
+2. La app obtiene una imagen JPG desde camara o galeria.
+3. Opcionalmente se adjuntan ubicacion, token FCM y explicabilidad.
+4. El backend guarda la imagen y crea un registro `analysis` en estado `analyzing`.
+5. Un worker procesa la cola, llama a Ollama y persiste los resultados.
+6. La app consulta el historial y muestra resultados, avisos y cajas delimitadoras si existen.
+
+## Backend
+
+Tecnologias principales:
+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Firebase Admin
+- Ollama
+- HTTPX
+- Uvicorn
+
+Endpoints principales:
+
+- `GET /ping`: comprobacion basica de disponibilidad.
+- `GET /`: estado del servicio.
+- `POST /analysis/upload`: subida de imagen JPG para analisis.
+- `GET /analysis/history`: historial del usuario autenticado.
+- `DELETE /analysis/{analysis_id}`: elimina un analisis concreto.
+- `PATCH /analysis/{analysis_id}/cancel`: cancela un analisis en curso.
+- `DELETE /analysis/user-data`: elimina los analisis y archivos asociados al usuario.
+- `/uploads/...`: servicio estatico para imagenes subidas.
+
+Variables de entorno relevantes:
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/climanuvem
+FIREBASE_KEY_PATH=secrets/firebase_key.json
+OLLAMA_URL=http://localhost:11434/api/generate
+CORS_ALLOW_ORIGINS=http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
+LOG_LEVEL=INFO
+TEST_MODE=false
+DISABLE_WORKER=false
 ```
 
-The project also can be deployed using Deno, place yourself in the root folder and execute:
+Notas:
+
+- `CORS_ALLOW_ORIGINS` debe contener origenes explicitos separados por comas. No se usa wildcard con credenciales.
+- `FIREBASE_KEY_PATH` debe apuntar a un fichero de credenciales fuera del control de versiones.
+- `TEST_MODE=true` permite usar autenticacion simulada en pruebas.
+- `DISABLE_WORKER=true` desactiva el worker asincrono.
+
+Ejecucion local del backend:
 
 ```bash
 cd backend
-deno run --allow-net --allow-read 
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-and into another terminal:
+## Docker Backend
+
+El fichero `backend/docker-compose.yml` levanta:
+
+- PostgreSQL 15
+- Ollama
+- Backend FastAPI en el puerto `8000`
+
+Ejemplo:
+
+```bash
+cd backend
+docker compose up --build
+```
+
+El servicio espera las variables de PostgreSQL (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) y monta:
+
+- `./uploads` para imagenes subidas.
+- `./secrets` para credenciales privadas.
+
+## Frontend
+
+Tecnologias principales:
+
+- Expo
+- React Native
+- Expo Router
+- Firebase
+- i18next
+- Expo Camera, Image Picker, Location y Notifications
+
+Variables de entorno relevantes:
+
+```env
+EXPO_PUBLIC_BACKEND_URL=http://localhost:8000
+EXPO_PUBLIC_TEST_MODE=false
+```
+
+Comandos habituales:
 
 ```bash
 cd frontend
-deno run --allow-net --allow-env --allow-read main.ts 
+npm install
+npm start
+npm run android
+npm run ios
+npm run web
 ```
 
+Para probar en un movil fisico, `EXPO_PUBLIC_BACKEND_URL` debe apuntar a una direccion accesible desde el dispositivo, no necesariamente a `localhost`.
 
-## Getting started
+## Base De Datos
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+El backend crea las tablas necesarias al arrancar si no existen:
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- `analysis`: metadatos de cada analisis, usuario, imagen, ubicacion y estado.
+- `clouds`: catalogo de tipos de nube, prevision y avisos.
+- `analysis_cloud`: relacion entre analisis y tipos detectados, incluyendo confianza y cajas delimitadoras.
 
-## Add your files
+Tambien inicializa el catalogo de nubes cuando la tabla esta vacia.
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Seguridad Y Configuracion
 
+- No subir credenciales Firebase, claves privadas ni ficheros `.env`.
+- Mantener CORS limitado a origenes conocidos.
+- El backend valida que las imagenes sean JPG, no esten vacias y no superen 5 MB.
+- Los analisis anonimos antiguos se limpian automaticamente a partir de la politica implementada en el arranque del backend.
+
+## Tests
+
+Backend:
+
+```bash
+cd backend
+pytest
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/HP-SCDS/Observatorio/2025-2026/climanuvem/epi-climanuvem.git
-git branch -M main
-git push -uf origin main
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+npm run lint
 ```
-
-## Integrate with your tools
-
-- [ ] [Set up project integrations](https://gitlab.com/HP-SCDS/Observatorio/2025-2026/climanuvem/epi-climanuvem/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.

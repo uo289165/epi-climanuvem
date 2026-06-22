@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.infrastructure.database.database import engine
 from app.infrastructure.logging_config import configure_logging
-from app.infrastructure.config import DISABLE_WORKER
+from app.infrastructure.config import CORS_ALLOW_ORIGINS, DISABLE_WORKER
 from app.presentation.routes import test_routes, analysis_routes
 from app.business.worker import analysis_worker
 
@@ -83,7 +83,7 @@ app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,4 +98,4 @@ def ping():
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"service": "ClimaNuvem API", "status": "ok"}

@@ -2,16 +2,14 @@ import os
 import uuid
 import logging
 from datetime import datetime
-import asyncio
 import anyio
-from typing import Annotated, List, Dict, Any
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.presentation.dependencies.auth_dependency import get_current_user
-from app.infrastructure.database.database import get_db, engine
-from app.business.analysis_service import AnalysisService
+from app.infrastructure.database.database import get_db
 from app.infrastructure.queue import analysis_queue, AnalysisTask
 from app.data.analysis_repository import CLOUD_NAME_MAPPING
 
@@ -131,7 +129,7 @@ def _initialize_analysis_record(row, analysis_id: str) -> dict:
         "location": row.location or "Ubicación desconocida",
         "latitude": row.latitude,
         "longitude": row.longitude,
-        "imageUrl": row.image_path or "https://picsum.photos/id/1015/800/600",  # Placeholder para testing
+        "imageUrl": row.image_path,
         "results": {
             "cloudTypes": [],
             "cloudDetails": [],
