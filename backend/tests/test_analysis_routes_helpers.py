@@ -25,7 +25,7 @@ def test_initialize_analysis_record_uses_defaults_for_missing_values():
     assert record["id"] == "12"
     assert record["date"] is None
     assert record["location"] == "Ubicación desconocida"
-    assert record["imageUrl"].startswith("https://picsum.photos/")
+    assert record["imageUrl"] is None
     assert record["results"] == {
         "cloudTypes": [],
         "cloudDetails": [],
