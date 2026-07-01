@@ -53,7 +53,7 @@ class AnalysisService:
             self._send_notification(fcm_token, analysis_id, "Análisis Completado", "Tu imagen de nubes ha sido analizada con éxito.")
             
         except Exception as e:
-            logger.error("Error processing analysis_id=%s: %s", analysis_id, e)
+            logger.exception("Error processing analysis_id=%s: %s", analysis_id, e)
             # 5. En caso de error, marcar como cancelado
             self.repository.update_status(analysis_id, 'cancelled')
             self._send_notification(fcm_token, analysis_id, "Error en el Análisis", "Hubo un problema al procesar tu imagen. Abre para más detalles.")
@@ -76,4 +76,4 @@ class AnalysisService:
             response = messaging.send(message)
             logger.info("Successfully sent FCM notification for analysis_id=%s response=%s", analysis_id, response)
         except Exception as e:
-            logger.error("Error sending FCM notification for analysis_id=%s: %s", analysis_id, e)
+            logger.exception("Error sending FCM notification for analysis_id=%s: %s", analysis_id, e)

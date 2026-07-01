@@ -61,6 +61,7 @@ Variables de entorno relevantes:
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/climanuvem
 FIREBASE_KEY_PATH=secrets/firebase_key.json
+FIREBASE_CLOCK_SKEW_SECONDS=5
 OLLAMA_URL=http://localhost:11434/api/generate
 CORS_ALLOW_ORIGINS=http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
 LOG_LEVEL=INFO
@@ -72,6 +73,7 @@ Notas:
 
 - `CORS_ALLOW_ORIGINS` debe contener origenes explicitos separados por comas. No se usa wildcard con credenciales.
 - `FIREBASE_KEY_PATH` debe apuntar a un fichero de credenciales fuera del control de versiones.
+- `FIREBASE_CLOCK_SKEW_SECONDS` define el margen en segundos para tolerar pequenos desfases de reloj al verificar tokens Firebase. Valor recomendado: `5`.
 - `TEST_MODE=true` permite usar autenticacion simulada en pruebas.
 - `DISABLE_WORKER=true` desactiva el worker asincrono.
 
@@ -102,8 +104,8 @@ docker compose up --build
 
 El servicio espera las variables de PostgreSQL (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) y monta:
 
-- `./uploads` para imagenes subidas.
-- `./secrets` para credenciales privadas.
+- `backend_uploads` para imagenes subidas persistentes.
+- `./secrets` para credenciales privadas en modo solo lectura.
 
 ## Frontend
 

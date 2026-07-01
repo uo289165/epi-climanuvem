@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 FIREBASE_KEY_PATH = os.getenv("FIREBASE_KEY_PATH")
+FIREBASE_CLOCK_SKEW_SECONDS = int(os.getenv("FIREBASE_CLOCK_SKEW_SECONDS", "5"))
 DATABASE_URL = os.getenv("DATABASE_URL")
 OLLAMA_URL = os.getenv("OLLAMA_URL")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

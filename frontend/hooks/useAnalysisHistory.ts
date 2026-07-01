@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/src/config/firebaseConfig';
 import * as Notifications from 'expo-notifications';
 import { Logger } from '@/src/services/LoggerService';
+import { useNotificationResponse } from '@/hooks/useNotificationResponse';
 
 export const useAnalysisHistory = () => {
   const notificationsEnabled = Platform.OS !== 'web' && process.env.EXPO_PUBLIC_TEST_MODE !== 'true';
@@ -17,9 +18,7 @@ export const useAnalysisHistory = () => {
   
   // Track to avoid processing the same notification repeatedly
   const [processedNotificationId, setProcessedNotificationId] = useState<string | null>(null);
-  const lastNotificationResponse = notificationsEnabled
-    ? Notifications.useLastNotificationResponse()
-    : null;
+  const lastNotificationResponse = useNotificationResponse();
 
   useEffect(() => {
     if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
@@ -60,6 +59,10 @@ export const useAnalysisHistory = () => {
 
   // Manage background/cold start taps through Expo's hook
   useEffect(() => {
+    if (!notificationsEnabled) {
+      return;
+    }
+
     if (lastNotificationResponse && isLoggedIn) {
       const reqId = lastNotificationResponse.notification.request.identifier;
       if (reqId !== processedNotificationId) {
@@ -71,7 +74,7 @@ export const useAnalysisHistory = () => {
         }
       }
     }
-  }, [lastNotificationResponse, isLoggedIn, loadHistory, processedNotificationId]);
+  }, [lastNotificationResponse, isLoggedIn, loadHistory, notificationsEnabled, processedNotificationId]);
 
   // Manage foreground notifications automatically
   useEffect(() => {

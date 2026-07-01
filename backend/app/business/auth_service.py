@@ -1,6 +1,11 @@
 from app.infrastructure.config import TEST_MODE, TEST_TOKEN, TEST_USER_UID
 from app.infrastructure.firebase_service import verify_token
 
+
+class InvalidTokenError(ValueError):
+    pass
+
+
 def authenticate_user(token: str):
     if TEST_MODE and token:
         return {
@@ -12,5 +17,5 @@ def authenticate_user(token: str):
 
     decoded = verify_token(token)
     if not decoded:
-        raise Exception("Invalid token")
+        raise InvalidTokenError("Invalid token")
     return decoded

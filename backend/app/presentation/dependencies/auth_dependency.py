@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import Header, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from app.business.auth_service import authenticate_user
+from app.business.auth_service import InvalidTokenError, authenticate_user
 
 security = HTTPBearer(auto_error=False)
 
@@ -15,7 +15,7 @@ def get_current_user(
     try:
         token = credentials.credentials
         return authenticate_user(token)
-    except Exception:
+    except InvalidTokenError:
         raise HTTPException(
             status_code=401,
             detail="Invalid token",

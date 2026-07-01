@@ -37,7 +37,7 @@ def _cleanup_obsolete_analyses(conn):
                 try:
                     os.remove(file_path)
                 except Exception as e:
-                    logger.error("Error deleting obsolete file at %s: %s", file_path, e)
+                    logger.exception("Error deleting obsolete file at %s: %s", file_path, e)
                     
         conn.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": row.id})
         conn.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": row.id})

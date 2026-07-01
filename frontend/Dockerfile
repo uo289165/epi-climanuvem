@@ -10,10 +10,21 @@ ENV EXPO_PUBLIC_DEFAULT_LANGUAGE=${EXPO_PUBLIC_DEFAULT_LANGUAGE}
 ENV EXPO_PUBLIC_TEST_MODE=${EXPO_PUBLIC_TEST_MODE}
 ENV CI=1
 
-COPY package*.json ./
-RUN npm ci
+COPY package.json package-lock.json ./
+RUN npm ci \
+    && chown -R node:node /app
 
-COPY . .
+COPY --chown=node:node app ./app
+COPY --chown=node:node assets ./assets
+COPY --chown=node:node components ./components
+COPY --chown=node:node constants ./constants
+COPY --chown=node:node hooks ./hooks
+COPY --chown=node:node src ./src
+COPY --chown=node:node app.json expo-env.d.ts tsconfig.json ./
+COPY --chown=node:node .env ./
+COPY --chown=node:node google-services.json GoogleService-Info.plist ./
+
+USER node
 
 EXPOSE 8081
 

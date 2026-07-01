@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.presentation.routes.analysis_routes import (
+    router,
     _validate_uploaded_jpeg,
     _initialize_analysis_record,
     _update_analysis_results,
@@ -103,3 +104,13 @@ def test_validate_uploaded_jpeg_accepts_jpg_signature_extension_and_content_type
     file = SimpleNamespace(filename="cloud.jpg", content_type="image/jpeg")
 
     _validate_uploaded_jpeg(file, b"\xff\xd8\xff\xe0valid-jpeg-like-content", "test-user")
+
+
+def test_cancel_get_documents_forbidden_response():
+    route = next(
+        route
+        for route in router.routes
+        if route.path == "/{analysis_id}/cancel" and "GET" in route.methods
+    )
+
+    assert route.responses[403]["description"] == "Forbidden"

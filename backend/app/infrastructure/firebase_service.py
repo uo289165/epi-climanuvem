@@ -1,6 +1,6 @@
 import logging
 from firebase_admin import credentials, initialize_app, auth
-from app.infrastructure.config import FIREBASE_KEY_PATH, TEST_MODE
+from app.infrastructure.config import FIREBASE_CLOCK_SKEW_SECONDS, FIREBASE_KEY_PATH, TEST_MODE
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,11 @@ def verify_token(token: str):
         return None
 
     try:
-        decoded_token = auth.verify_id_token(token)
+        decoded_token = auth.verify_id_token(
+            token,
+            clock_skew_seconds=FIREBASE_CLOCK_SKEW_SECONDS,
+        )
         return decoded_token
     except Exception as e:
-        logger.error("Error verifying Firebase token: %s", e)
+        logger.exception("Error verifying Firebase token: %s", e)
         return None

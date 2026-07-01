@@ -47,5 +47,5 @@ def test_authenticate_user_raises_when_firebase_rejects_token(monkeypatch):
     auth_service = importlib.reload(auth_service)
     monkeypatch.setattr(auth_service, "verify_token", lambda token: None)
 
-    with pytest.raises(Exception, match="Invalid token"):
+    with pytest.raises(auth_service.InvalidTokenError, match="Invalid token"):
         auth_service.authenticate_user("bad-token")

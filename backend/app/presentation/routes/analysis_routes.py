@@ -27,13 +27,12 @@ JPEG_CONTENT_TYPE = "image/jpeg"
 
 def _validate_uploaded_jpeg(file: UploadFile, content: bytes, uid: str):
     if len(content) == 0:
-        logger.warning("Image upload rejected because file is empty for uid=%s filename=%s", uid, file.filename)
+        logger.warning("Image upload rejected because file is empty")
         raise HTTPException(status_code=400, detail="IMAGE_EMPTY")
 
     if len(content) > MAX_IMAGE_SIZE_BYTES:
         logger.warning(
-            "Image upload rejected due to size limit for uid=%s size_bytes=%s max_bytes=%s",
-            uid,
+            "Image upload rejected due to size limit size_bytes=%s max_bytes=%s",
             len(content),
             MAX_IMAGE_SIZE_BYTES,
         )
@@ -46,12 +45,7 @@ def _validate_uploaded_jpeg(file: UploadFile, content: bytes, uid: str):
     has_jpeg_signature = content.startswith(JPEG_SIGNATURE)
 
     if not (has_valid_extension and has_valid_content_type and has_jpeg_signature):
-        logger.warning(
-            "Image upload rejected due to invalid JPG format for uid=%s filename=%s content_type=%s",
-            uid,
-            file.filename,
-            file.content_type,
-        )
+        logger.warning("Image upload rejected due to invalid JPG format")
         raise HTTPException(status_code=400, detail="INVALID_IMAGE_FORMAT_JPG_ONLY")
 
 @router.get("/upload", responses={403: {"description": "Forbidden"}, 405: {"description": "Method Not Allowed"}})
@@ -239,7 +233,7 @@ def _remove_analysis_file(image_path):
         try:
             os.remove(file_path)
         except Exception as e:
-            logger.error("Error removing analysis file at %s: %s", file_path, e)
+            logger.exception("Error removing analysis file at %s: %s", file_path, e)
 
 @router.delete("/user-data", responses={401: {"description": "Unauthorized"}})
 def delete_user_data(
@@ -316,7 +310,14 @@ def cancel_analysis(
     
     return {"message": "Análisis cancelado correctamente."}
 
-@router.get("/{analysis_id}/cancel", responses={401: {"description": "Unauthorized"}, 405: {"description": "Method Not Allowed"}})
+@router.get(
+    "/{analysis_id}/cancel",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden"},
+        405: {"description": "Method Not Allowed"},
+    },
+)
 def cancel_analysis_get_requires_auth(
     analysis_id: int
 ):

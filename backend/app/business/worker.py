@@ -32,7 +32,7 @@ async def analysis_worker():
                     service = AnalysisService()
                     await service.process_image(task.analysis_id, task.file_path, task.fcm_token, task.explainability)
             except Exception as e:
-                logger.error(f"Error processing analysis {task.analysis_id} in worker: {e}")
+                logger.exception(f"Error processing analysis {task.analysis_id} in worker: {e}")
             finally:
                 analysis_queue.task_done()
                 logger.info(f"Worker finished processing analysis_id: {task.analysis_id}")
@@ -41,6 +41,6 @@ async def analysis_worker():
             logger.info("Analysis worker cancelled, shutting down...")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error in worker loop: {e}")
+            logger.exception(f"Unexpected error in worker loop: {e}")
             # Prevent rapid spinning if something goes horribly wrong
             await asyncio.sleep(1)

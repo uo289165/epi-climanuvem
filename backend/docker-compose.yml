@@ -37,8 +37,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./uploads:/app/uploads
-      - ./secrets:/app/secrets
+      - backend_uploads:/app/uploads
+      - ./secrets:/app/secrets:ro
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - FIREBASE_KEY_PATH=secrets/firebase_key.json
@@ -57,3 +57,4 @@ networks:
 volumes:
   postgres_data:
   ollama_data:
+  backend_uploads:
