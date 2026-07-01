@@ -134,6 +134,54 @@ class OllamaClient:
             # Si falla, devolvemos un objeto vacío para evitar que el worker rompa
             return {"predictions": []}
 
+    def _normalize_prediction(self, prediction):
+        if isinstance(prediction, str):
+            label = prediction.strip()
+            if not label:
+                return None
+            return {"label": label, "confidence": 0.0}
+
+        if not isinstance(prediction, dict):
+            logger.warning("Ignoring malformed model prediction: %r", prediction)
+            return None
+
+        label = prediction.get("label")
+        if not isinstance(label, str) or not label.strip():
+            logger.warning("Ignoring model prediction without a valid label: %r", prediction)
+            return None
+
+        normalized = {"label": label.strip()}
+
+        try:
+            confidence = float(prediction.get("confidence", 0.0))
+        except (TypeError, ValueError):
+            confidence = 0.0
+        normalized["confidence"] = max(0.0, min(1.0, confidence))
+
+        box_2d = prediction.get("box_2d")
+        if isinstance(box_2d, list) and len(box_2d) == 4:
+            normalized["box_2d"] = box_2d
+
+        return normalized
+
+    def _extract_predictions(self, result: dict) -> list:
+        predictions = result.get("predictions", [])
+
+        if isinstance(predictions, (dict, str)):
+            predictions = [predictions]
+
+        if not isinstance(predictions, list):
+            logger.warning("Ignoring malformed model predictions payload: %r", predictions)
+            return []
+
+        normalized_predictions = []
+        for prediction in predictions:
+            normalized = self._normalize_prediction(prediction)
+            if normalized:
+                normalized_predictions.append(normalized)
+
+        return normalized_predictions
+
     async def analyze_image(self, base64_image: str) -> list:
         """Realiza un análisis simple de la imagen para clasificar las nubes."""
         payload = {
@@ -154,7 +202,7 @@ class OllamaClient:
             
             raw_output = response.json().get("response", "")
             result = self._clean_and_parse_json(raw_output)
-            return result.get("predictions", [])
+            return self._extract_predictions(result)
 
     async def get_explainability_boxes(self, base64_image: str, labels: list) -> list:
         """Obtiene las bounding boxes para una lista específica de etiquetas de nubes."""
@@ -179,4 +227,4 @@ class OllamaClient:
             
             raw_output = response.json().get("response", "")
             result = self._clean_and_parse_json(raw_output)
-            return result.get("predictions", [])
+            return self._extract_predictions(result)
