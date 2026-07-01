@@ -1,7 +1,6 @@
 import httpx
 import json
 import logging
-import re
 from app.infrastructure.config import OLLAMA_URL
 
 logger = logging.getLogger(__name__)
@@ -113,10 +112,18 @@ class OllamaClient:
         
         # Si contiene bloques de código markdown, extraer el contenido
         if "```" in cleaned:
-            # Intentar extraer lo que hay dentro de los bloques ```json o ```
-            json_match = re.search(r'```(?:json)?\s*([^`]+)\s*```', cleaned, re.DOTALL)
-            if json_match:
-                cleaned = json_match.group(1).strip()
+            opening_fence_idx = cleaned.find("```")
+            content_start_idx = opening_fence_idx + 3
+
+            newline_idx = cleaned.find("\n", content_start_idx)
+            if newline_idx != -1:
+                fence_label = cleaned[content_start_idx:newline_idx].strip().lower()
+                if not fence_label or fence_label == "json":
+                    content_start_idx = newline_idx + 1
+
+            closing_fence_idx = cleaned.find("```", content_start_idx)
+            if closing_fence_idx != -1:
+                cleaned = cleaned[content_start_idx:closing_fence_idx].strip()
         
         # 2. Si todavía no es un JSON puro, intentar encontrar el primer '{' y el último '}'
         if not (cleaned.startswith('{') and cleaned.endswith('}')):

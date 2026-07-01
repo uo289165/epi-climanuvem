@@ -25,7 +25,7 @@ JPEG_SIGNATURE = b"\xff\xd8\xff"
 ALLOWED_JPEG_EXTENSIONS = {".jpg", ".jpeg"}
 JPEG_CONTENT_TYPE = "image/jpeg"
 
-def _validate_uploaded_jpeg(file: UploadFile, content: bytes, uid: str):
+def _validate_uploaded_jpeg(file: UploadFile, content: bytes):
     if len(content) == 0:
         logger.warning("Image upload rejected because file is empty")
         raise HTTPException(status_code=400, detail="IMAGE_EMPTY")
@@ -70,7 +70,7 @@ async def upload_image(
         raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
 
     content = await file.read()
-    _validate_uploaded_jpeg(file, content, uid)
+    _validate_uploaded_jpeg(file, content)
 
     file_ext = os.path.splitext(file.filename)[1].lower().lstrip(".")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

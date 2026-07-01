@@ -2,6 +2,7 @@ from datetime import datetime
 from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 
 from app.presentation.routes.analysis_routes import (
     router,
@@ -83,8 +84,8 @@ def test_update_analysis_results_deduplicates_clouds_forecasts_and_warnings():
 def test_validate_uploaded_jpeg_rejects_empty_file():
     file = SimpleNamespace(filename="empty.jpg", content_type="image/jpeg")
 
-    with pytest.raises(Exception) as exc_info:
-        _validate_uploaded_jpeg(file, b"", "test-user")
+    with pytest.raises(HTTPException) as exc_info:
+        _validate_uploaded_jpeg(file, b"")
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "IMAGE_EMPTY"
@@ -93,8 +94,8 @@ def test_validate_uploaded_jpeg_rejects_empty_file():
 def test_validate_uploaded_jpeg_rejects_non_jpg_file():
     file = SimpleNamespace(filename="not-a-jpg.txt", content_type="text/plain")
 
-    with pytest.raises(Exception) as exc_info:
-        _validate_uploaded_jpeg(file, b"not-a-jpeg-image", "test-user")
+    with pytest.raises(HTTPException) as exc_info:
+        _validate_uploaded_jpeg(file, b"not-a-jpeg-image")
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "INVALID_IMAGE_FORMAT_JPG_ONLY"
@@ -103,7 +104,7 @@ def test_validate_uploaded_jpeg_rejects_non_jpg_file():
 def test_validate_uploaded_jpeg_accepts_jpg_signature_extension_and_content_type():
     file = SimpleNamespace(filename="cloud.jpg", content_type="image/jpeg")
 
-    _validate_uploaded_jpeg(file, b"\xff\xd8\xff\xe0valid-jpeg-like-content", "test-user")
+    _validate_uploaded_jpeg(file, b"\xff\xd8\xff\xe0valid-jpeg-like-content")
 
 
 def test_cancel_get_documents_forbidden_response():
