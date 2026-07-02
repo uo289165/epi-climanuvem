@@ -175,6 +175,7 @@ jobs:
           mkdir -p android/app
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
           echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+          cp google-services.json android/app/google-services.json
 
       - name: Configure release signing
         env:
