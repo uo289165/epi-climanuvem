@@ -16,7 +16,7 @@
     "android": {
       "package": "com.friede.climanuvem",
       "googleServicesFile": "./google-services.json",
-      "usesCleartextTraffic": true,
+      "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "backgroundColor": "#EAF7FB",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
