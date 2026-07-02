@@ -13,6 +13,8 @@ EXPO_PUBLIC_TEST_MODE=false
 
 En un dispositivo fisico, `EXPO_PUBLIC_BACKEND_URL` debe ser una direccion accesible desde el movil, por ejemplo la IP local del equipo donde se ejecuta el backend.
 
+El fichero `google-services.json` no se versiona. Para desarrollo local, descargalo desde Firebase o restauralo desde un almacenamiento privado y colocalo en la raiz de `frontend/`.
+
 ## Comandos
 
 ```bash
@@ -24,6 +26,30 @@ npm run web
 npm run lint
 npm test
 ```
+
+## Build Android Y CI
+
+GitHub Actions compila automaticamente un APK release firmado cuando hay cambios en `frontend/` sobre `main` y los tests pasan. El APK se adjunta a una nueva GitHub Release.
+
+Secrets requeridos para el build Android:
+
+```text
+ANDROID_KEYSTORE_BASE64
+ANDROID_KEYSTORE_PASSWORD
+ANDROID_KEY_ALIAS
+ANDROID_KEY_PASSWORD
+GOOGLE_SERVICES_JSON_BASE64
+EXPO_PUBLIC_BACKEND_URL
+EXPO_PUBLIC_FIREBASE_API_KEY
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+EXPO_PUBLIC_FIREBASE_PROJECT_ID
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+EXPO_PUBLIC_FIREBASE_APP_ID
+EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+```
+
+El workflow restaura `google-services.json`, crea la keystore en `android/app/release.keystore` y escribe la configuracion de firma en Gradle durante la ejecucion.
 
 ## Estructura
 

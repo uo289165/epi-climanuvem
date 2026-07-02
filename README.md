@@ -151,9 +151,39 @@ Tambien inicializa el catalogo de nubes cuando la tabla esta vacia.
 ## Seguridad Y Configuracion
 
 - No subir credenciales Firebase, claves privadas ni ficheros `.env`.
+- No subir `frontend/google-services.json` ni keystores Android. Estos ficheros se restauran en GitHub Actions desde secrets.
 - Mantener CORS limitado a origenes conocidos.
 - El backend valida que las imagenes sean JPG, no esten vacias y no superen 5 MB.
 - Los analisis anonimos antiguos se limpian automaticamente a partir de la politica implementada en el arranque del backend.
+
+## CI/CD En GitHub Actions
+
+El workflow `.github/workflows/ci-cd.yml` ejecuta validaciones por rutas:
+
+- Cambios en `backend/`: instala dependencias Python y ejecuta `pytest`.
+- Cambios en `frontend/`: instala dependencias Node, ejecuta `npm run lint` y `npm test`.
+- Cambios en `frontend/` sobre `main`: si los tests pasan, compila un APK Android release firmado y lo adjunta a una nueva GitHub Release.
+- Cambios solo en `backend/` no generan APK ni release.
+
+Secrets necesarios en GitHub:
+
+```text
+ANDROID_KEYSTORE_BASE64
+ANDROID_KEYSTORE_PASSWORD
+ANDROID_KEY_ALIAS
+ANDROID_KEY_PASSWORD
+GOOGLE_SERVICES_JSON_BASE64
+EXPO_PUBLIC_BACKEND_URL
+EXPO_PUBLIC_FIREBASE_API_KEY
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+EXPO_PUBLIC_FIREBASE_PROJECT_ID
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+EXPO_PUBLIC_FIREBASE_APP_ID
+EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+```
+
+Las variables `EXPO_PUBLIC_*` tambien deben guardarse como secrets para que el APK de release quede compilado con la URL HTTPS del backend y la configuracion Firebase correcta. `EXPO_PUBLIC_BACKEND_URL` debe ser una URL `https://...`; Android release no permite trafico HTTP en claro.
 
 ## Tests
 

@@ -40,7 +40,6 @@ app-example
 
 # generated native folders
 ios/
-android/
 
 # Created by https://www.toptal.com/developers/gitignore/api/reactnative
 # Edit at https://www.toptal.com/developers/gitignore?templates=reactnative
@@ -286,3 +285,10 @@ buck-out/
 .fakebuckversion
 
 # End of https://www.toptal.com/developers/gitignore/api/reactnative
+
+google-services.json
+*.keystore
+*.jks
+*.p12
+*.p8
+GoogleService-Info.plist
