@@ -3,6 +3,5 @@
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
-    <!-- Debug builds allow HTTP to reach local development backends on emulators/devices. -->
-    <application android:allowBackup="false" android:usesCleartextTraffic="true" tools:targetApi="28" tools:ignore="GoogleAppIndexingWarning,UnusedAttribute" tools:replace="android:allowBackup,android:usesCleartextTraffic" />
+    <application android:allowBackup="false" tools:targetApi="28" tools:ignore="GoogleAppIndexingWarning,UnusedAttribute" tools:replace="android:allowBackup" />
 </manifest>

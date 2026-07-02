@@ -173,18 +173,17 @@ ANDROID_KEYSTORE_PASSWORD
 ANDROID_KEY_ALIAS
 ANDROID_KEY_PASSWORD
 GOOGLE_SERVICES_JSON_BASE64
+EXPO_PUBLIC_BACKEND_URL
+EXPO_PUBLIC_FIREBASE_API_KEY
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN
+EXPO_PUBLIC_FIREBASE_PROJECT_ID
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+EXPO_PUBLIC_FIREBASE_APP_ID
+EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 ```
 
-Para convertir los ficheros privados a base64 en PowerShell:
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("frontend\google-services.json"))
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("ruta\a\climanuvem-release.keystore"))
-```
-
-Guarda cada salida como secret en GitHub. El workflow reconstruye `frontend/google-services.json` y `frontend/android/app/release.keystore` durante la ejecucion.
-
-Importante: la firma Android que estaba en `frontend/android/gradle.properties` debe considerarse expuesta. Regenera o rota la keystore y sus contrasenas antes de publicar builds reales.
+Las variables `EXPO_PUBLIC_*` tambien deben guardarse como secrets para que el APK de release quede compilado con la URL HTTPS del backend y la configuracion Firebase correcta. `EXPO_PUBLIC_BACKEND_URL` debe ser una URL `https://...`; Android release no permite trafico HTTP en claro.
 
 ## Tests
 
