@@ -1,4 +1,4 @@
-from app.infrastructure.config import TEST_MODE, TEST_TOKEN, TEST_USER_UID
+from app.infrastructure.config import get_settings
 from app.infrastructure.firebase_service import verify_token
 
 
@@ -7,11 +7,12 @@ class InvalidTokenError(ValueError):
 
 
 def authenticate_user(token: str):
-    if TEST_MODE and token:
+    settings = get_settings()
+    if settings.test_mode and token:
         return {
-            "uid": TEST_USER_UID,
+            "uid": settings.test_user_uid,
             "firebase": {
-                "sign_in_provider": "anonymous" if token != TEST_TOKEN else "custom"
+                "sign_in_provider": "anonymous" if token != settings.test_token else "custom"
             }
         }
 

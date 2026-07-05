@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 class AnalysisService:
     
-    def __init__(self):
-        self.ollama_client = OllamaClient()
-        self.repository = AnalysisRepository()
+    def __init__(self, ollama_client=None, repository=None):
+        self.ollama_client = ollama_client or OllamaClient()
+        self.repository = repository or AnalysisRepository()
 
     async def process_image(self, analysis_id: int, file_path: str, fcm_token: str = "", explainability: bool = False):
         try:

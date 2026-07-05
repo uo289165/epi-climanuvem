@@ -14,9 +14,11 @@ interface StatusModalProps {
   readonly message?: string;
   readonly onClose?: () => void;
   readonly onCancel?: () => void;
+  readonly confirmText?: string;
+  readonly cancelText?: string;
 }
 
-export function StatusModal({ visible, type, title, message, onClose, onCancel }: StatusModalProps) {
+export function StatusModal({ visible, type, title, message, onClose, onCancel, confirmText, cancelText }: StatusModalProps) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const styles = getStatusModalStyles(theme);
@@ -61,10 +63,10 @@ export function StatusModal({ visible, type, title, message, onClose, onCancel }
               {type === 'confirm' ? (
                 <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
                   <TouchableOpacity style={[styles.button, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border }]} onPress={onCancel || onClose}>
-                    <Text style={[styles.buttonText, { color: theme.colors.text }]}>{t('common.cancel')}</Text>
+                    <Text style={[styles.buttonText, { color: theme.colors.text }]}>{cancelText ?? t('common.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={onClose}>
-                    <Text style={styles.buttonText}>{t('common.accept')}</Text>
+                    <Text style={styles.buttonText}>{confirmText ?? t('common.accept')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (

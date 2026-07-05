@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Theme, lightTheme, darkTheme } from '../styles/theme';
-import { Logger } from '../services/LoggerService';
+import { usePersistedPreference } from '@/src/hooks/usePersistedPreference';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -20,32 +19,12 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useTheme = () => useContext(ThemeContext);
 
+const isThemeMode = (value: string): value is ThemeMode =>
+  value === 'light' || value === 'dark' || value === 'system';
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [themeModeState, setThemeModeState] = useState<ThemeMode>('system');
-
-  useEffect(() => {
-    const loadTheme = async () => {
-      try {
-        const savedTheme = await AsyncStorage.getItem('appTheme');
-        if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') {
-          setThemeModeState(savedTheme);
-        }
-      } catch (error) {
-        Logger.error('Error loading theme preference', error);
-      }
-    };
-    loadTheme();
-  }, []);
-
-  const setThemeMode = useCallback(async (mode: ThemeMode) => {
-    setThemeModeState(mode);
-    try {
-      await AsyncStorage.setItem('appTheme', mode);
-    } catch (error) {
-      Logger.error('Error saving theme preference', error);
-    }
-  }, []);
+  const [themeModeState, setThemeMode] = usePersistedPreference<ThemeMode>('appTheme', 'system', isThemeMode);
 
   const currentThemeMode = themeModeState === 'system' ? (systemColorScheme || 'light') : themeModeState;
   const theme = currentThemeMode === 'dark' ? darkTheme : lightTheme;

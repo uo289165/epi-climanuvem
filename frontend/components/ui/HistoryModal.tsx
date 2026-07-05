@@ -21,7 +21,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getHistoryModalStyles } from '@/src/styles/globalStyles';
-import { getStatusColor, getStatusText } from '@/src/utils/statusUtils';
+import { formatDate, getStatusColor, getStatusText } from '@/src/utils/statusUtils';
 import { useTranslation } from 'react-i18next';
 
 interface HistoryModalProps {
@@ -45,20 +45,9 @@ const HandleBar = () => {
 
 
 
-const formatDate = (dateString: string, language: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
 const RenderHistoryItem = ({ item, onSelect }: { item: AnalysisHistoryItem, onSelect: (item: AnalysisHistoryItem) => void }) => {
   const { theme } = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const styles = getHistoryModalStyles(theme);
   
   return (
@@ -73,7 +62,7 @@ const RenderHistoryItem = ({ item, onSelect }: { item: AnalysisHistoryItem, onSe
             {t(`analysisDetail.${item.status}`, { defaultValue: getStatusText(item.status) })}
           </Text>
         </View>
-        <Text style={styles.dateText}>{formatDate(item.date, t('common.spanish') === 'Español' ? 'es' : 'en')}</Text>
+        <Text style={styles.dateText}>{formatDate(item.date, i18n.language)}</Text>
       </View>
       <View style={styles.itemFooter}>
         <View style={styles.locationContainer}>

@@ -6,12 +6,11 @@ import anyio
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 from app.presentation.dependencies.auth_dependency import get_current_user
 from app.infrastructure.database.database import get_db
 from app.infrastructure.queue import analysis_queue, AnalysisTask
-from app.data.analysis_repository import CLOUD_NAME_MAPPING
+from app.data.analysis_repository import AnalysisRepository, CLOUD_NAME_MAPPING
 
 REVERSE_CLOUD_NAME_MAPPING = {v: k for k, v in CLOUD_NAME_MAPPING.items()}
 
@@ -88,21 +87,15 @@ async def upload_image(
     firebase_claim = user.get("firebase", {})
     is_anon = firebase_claim.get("sign_in_provider") == "anonymous"
     
-    insert_analysis_query = text("""
-        INSERT INTO analysis (uid, image_path, location, latitude, longitude, is_anon, status)
-        VALUES (:uid, :image_path, :location, :latitude, :longitude, :is_anon, 'analyzing')
-        RETURNING id
-    """)
-    result = db.execute(insert_analysis_query, {
-        "uid": uid,
-        "image_path": image_db_path,
-        "location": location,
-        "latitude": latitude,
-        "longitude": longitude,
-        "is_anon": is_anon
-    })
-    analysis_id = result.scalar()
-    
+    repository = AnalysisRepository(db)
+    analysis_id = repository.create_analysis(
+        uid=uid,
+        image_path=image_db_path,
+        location=location,
+        latitude=latitude,
+        longitude=longitude,
+        is_anon=is_anon,
+    )
     db.commit()
     
     task = AnalysisTask(analysis_id=analysis_id, file_path=file_path, fcm_token=fcm_token, explainability=include_explainability)
@@ -116,10 +109,16 @@ async def upload_image(
     }
 
 def _initialize_analysis_record(row, analysis_id: str) -> dict:
+    analysis_datetime = row.datetime
+    if hasattr(analysis_datetime, "isoformat"):
+        analysis_date = analysis_datetime.isoformat() + "Z"
+    else:
+        analysis_date = f"{analysis_datetime}Z" if analysis_datetime else None
+
     return {
         "id": analysis_id,
         "status": row.status,
-        "date": row.datetime.isoformat() + "Z" if row.datetime else None,
+        "date": analysis_date,
         "location": row.location or "Ubicación desconocida",
         "latitude": row.latitude,
         "longitude": row.longitude,
@@ -185,31 +184,7 @@ def get_analysis_history(
     if not uid:
         raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
 
-    query = """
-        SELECT 
-            a.id, 
-            a.status, 
-            a.datetime, 
-            a.location, 
-            a.latitude,
-            a.longitude,
-            a.image_path,
-            ac.box_ymin,
-            ac.box_xmin,
-            ac.box_ymax,
-            ac.box_xmax,
-            c.name as cloud_type,
-            c.forecast,
-            c.warning,
-            c.warning_level
-        FROM analysis a
-        LEFT JOIN analysis_cloud ac ON a.id = ac.analysis_id
-        LEFT JOIN clouds c ON ac.cloud_id = c.id
-        WHERE a.uid = :uid
-        ORDER BY a.datetime DESC
-    """
-    
-    result = db.execute(text(query), {"uid": uid}).fetchall()
+    result = AnalysisRepository(db).get_history_rows(uid)
     
     analyses_dict = {}
     
@@ -244,17 +219,10 @@ def delete_user_data(
     if not uid:
         raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
 
-    query = text("SELECT id, image_path FROM analysis WHERE uid = :uid")
-    analyses = db.execute(query, {"uid": uid}).fetchall()
-    
-    if not analyses:
-        return {"message": "Datos de usuario eliminados correctamente."}
-        
-    for row in analyses:
-        _remove_analysis_file(row.image_path)
-        db.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": row.id})
-        db.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": row.id})
-        
+    image_paths = AnalysisRepository(db).delete_user_analyses(uid)
+    for image_path in image_paths:
+        _remove_analysis_file(image_path)
+
     db.commit()
     logger.info("Deleted all analysis data for uid=%s", uid)
     
@@ -270,16 +238,11 @@ def delete_single_analysis(
     if not uid:
         raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
 
-    query = text("SELECT id, image_path FROM analysis WHERE id = :id AND uid = :uid")
-    analysis = db.execute(query, {"id": analysis_id, "uid": uid}).fetchone()
-    
-    if not analysis:
+    image_path = AnalysisRepository(db).delete_analysis(analysis_id, uid)
+    if image_path is None:
         raise HTTPException(status_code=404, detail="Analysis not found")
-        
-    _remove_analysis_file(analysis.image_path)
-    
-    db.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": analysis_id})
-    db.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": analysis_id})
+
+    _remove_analysis_file(image_path)
     db.commit()
     logger.info("Deleted single analysis analysis_id=%s uid=%s", analysis_id, uid)
     
@@ -295,16 +258,13 @@ def cancel_analysis(
     if not uid:
         raise HTTPException(status_code=401, detail=USER_ID_NOT_FOUND_MSG)
 
-    query = text("SELECT id, status FROM analysis WHERE id = :id AND uid = :uid")
-    analysis = db.execute(query, {"id": analysis_id, "uid": uid}).fetchone()
-    
-    if not analysis:
+    result = AnalysisRepository(db).cancel_analysis(analysis_id, uid)
+    if result == AnalysisRepository.CANCEL_NOT_FOUND:
         raise HTTPException(status_code=404, detail="Analysis not found")
-        
-    if analysis.status != 'analyzing':
+
+    if result == AnalysisRepository.CANCEL_INVALID_STATUS:
         raise HTTPException(status_code=400, detail="Only 'analyzing' tasks can be cancelled")
-        
-    db.execute(text("UPDATE analysis SET status = 'cancelled' WHERE id = :id"), {"id": analysis_id})
+
     db.commit()
     logger.info("Cancelled analysis analysis_id=%s uid=%s", analysis_id, uid)
     
@@ -319,6 +279,7 @@ def cancel_analysis(
     },
 )
 def cancel_analysis_get_requires_auth(
-    analysis_id: int
+    analysis_id: int,
+    user: Annotated[dict, Depends(get_current_user)]
 ):
-    raise HTTPException(status_code=403, detail="Not authenticated")
+    raise HTTPException(status_code=405, detail="Use PATCH to cancel an analysis")

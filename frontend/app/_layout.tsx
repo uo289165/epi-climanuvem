@@ -1,7 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -10,11 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemeProvider as CustomThemeProvider } from '@/src/contexts/ThemeContext';
 import { LanguageProvider } from '@/src/contexts/LanguageContext';
-
-import * as SystemUI from 'expo-system-ui';
-
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/src/config/firebaseConfig';
+import { useAppBootstrap } from '@/src/controllers/useAppBootstrap';
 
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -22,36 +17,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-
-  useEffect(() => {
-    // Configurar el color de fondo a nivel de sistema para evitar parpadeos negros/vacíos
-    SystemUI.setBackgroundColorAsync('#FFFFFF');
-
-    if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
-      SplashScreen.hideAsync();
-      return;
-    }
-
-    // Esperar a la resolución del estado de autenticación (AsyncStorage) antes de esconder el Splash Screen
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user?.isAnonymous || user?.emailVerified) {
-        // Redirigir y en el frame siguiente ocultar el splash screen
-        setTimeout(() => {
-          router.replace('/home' as any);
-          SplashScreen.hideAsync();
-        }, 0);
-        return;
-      }
-
-      if (user) {
-        await signOut(auth);
-      }
-
-      SplashScreen.hideAsync();
-    });
-
-    return unsubscribe;
-  }, []);
+  useAppBootstrap();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

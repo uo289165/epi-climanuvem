@@ -20,9 +20,7 @@ COPY --chown=node:node components ./components
 COPY --chown=node:node constants ./constants
 COPY --chown=node:node hooks ./hooks
 COPY --chown=node:node src ./src
-COPY --chown=node:node app.json expo-env.d.ts tsconfig.json ./
-COPY --chown=node:node .env ./
-COPY --chown=node:node google-services.json GoogleService-Info.plist ./
+COPY --chown=node:node app.json tsconfig.json ./
 
 USER node
 

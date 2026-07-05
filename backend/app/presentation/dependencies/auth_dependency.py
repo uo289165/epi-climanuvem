@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import Header, HTTPException, Depends
+from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.business.auth_service import InvalidTokenError, authenticate_user

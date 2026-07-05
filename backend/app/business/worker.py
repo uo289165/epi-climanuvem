@@ -1,9 +1,8 @@
 import asyncio
 import logging
-from sqlalchemy import text
 from app.infrastructure.queue import analysis_queue, AnalysisTask
 from app.business.analysis_service import AnalysisService
-from app.infrastructure.database.database import SessionLocal
+from app.data.analysis_repository import AnalysisRepository
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +18,8 @@ async def analysis_worker():
             logger.info(f"Worker picked up task for analysis_id: {task.analysis_id}")
             
             try:
-                db = SessionLocal()
-                try:
-                    result = db.execute(text("SELECT status FROM analysis WHERE id = :id"), {"id": task.analysis_id}).fetchone()
-                    is_cancelled_or_deleted = not result or result.status == 'cancelled'
-                finally:
-                    db.close()
+                status = AnalysisRepository().get_analysis_status(task.analysis_id)
+                is_cancelled_or_deleted = status is None or status == 'cancelled'
                 
                 if is_cancelled_or_deleted:
                     logger.info(f"Analysis {task.analysis_id} was deleted or cancelled, skipping...")

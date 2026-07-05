@@ -93,4 +93,74 @@ describe('BackendService', () => {
       { id: '2', imageUrl: 'https://cdn.test/cloud.jpg' },
     ]);
   });
+
+  it('uploads images with form data and auth header', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(true, 200, { analysis_id: 12 }),
+    );
+    const BackendService = loadBackendService();
+
+    await expect(
+      BackendService.uploadImage('file:///tmp/cloud.jpg', 'Gijon', 43.5, -5.6, 'fcm-token', true),
+    ).resolves.toEqual({ analysis_id: 12 });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://api.test/analysis/upload',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer firebase-token',
+        }),
+        body: expect.any(FormData),
+      }),
+    );
+  });
+
+  it('deletes all user data with the authenticated request helper', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(true, 200, { deleted: true }),
+    );
+    const BackendService = loadBackendService();
+
+    await expect(BackendService.deleteUserData()).resolves.toEqual({ deleted: true });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://api.test/analysis/user-data',
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer firebase-token',
+          'Content-Type': 'application/json',
+        }),
+      }),
+    );
+  });
+
+  it('deletes a single analysis by id', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(true, 200, { deleted: true }),
+    );
+    const BackendService = loadBackendService();
+
+    await expect(BackendService.deleteAnalysis('42')).resolves.toEqual({ deleted: true });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://api.test/analysis/42',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('cancels an analysis by id', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      jsonResponse(true, 200, { cancelled: true }),
+    );
+    const BackendService = loadBackendService();
+
+    await expect(BackendService.cancelAnalysis('42')).resolves.toEqual({ cancelled: true });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://api.test/analysis/42/cancel',
+      expect.objectContaining({ method: 'PATCH' }),
+    );
+  });
 });

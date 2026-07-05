@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getRegisterViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
@@ -8,36 +8,10 @@ import { AuthButton } from '@/components/ui/AuthButton';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { StatusModal } from '@/components/ui/StatusModal';
 import { useTranslation } from 'react-i18next';
+import type { useRegister } from '@/src/controllers/useRegister';
 
 interface RegisterViewProps {
-  readonly controller: {
-    readonly username: string;
-    readonly setUsername: (val: string) => void;
-    readonly email: string;
-    readonly setEmail: (val: string) => void;
-    readonly password: string;
-    readonly setPassword: (val: string) => void;
-    readonly confirmPassword: string;
-    readonly setConfirmPassword: (val: string) => void;
-    readonly showPassword: boolean;
-    readonly togglePasswordVisibility: () => void;
-    readonly showConfirmPassword: boolean;
-    readonly toggleConfirmPasswordVisibility: () => void;
-    readonly loading: boolean;
-    readonly handleRegister: () => void;
-    readonly handleNavigateToLogin: () => void;
-    readonly emailInputRef: React.RefObject<TextInput | null>;
-    readonly passwordInputRef: React.RefObject<TextInput | null>;
-    readonly confirmPasswordInputRef: React.RefObject<TextInput | null>;
-    readonly modalVisible: boolean;
-    readonly modalConfig: {
-      type: 'loading' | 'success' | 'error' | 'info';
-      title: string;
-      message: string;
-      onClose?: () => void;
-    };
-    readonly hideModal: () => void;
-  };
+  readonly controller: ReturnType<typeof useRegister>;
 }
 
 export function RegisterView({ controller }: RegisterViewProps) {
