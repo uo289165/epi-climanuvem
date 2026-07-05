@@ -1,3 +1,5 @@
+import asyncio
+
 from app.infrastructure.ollama_client import OllamaClient
 from app.infrastructure.config import reset_settings_cache
 
@@ -131,12 +133,10 @@ class FakeAsyncClient:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    def post(self, url, json):
+    async def post(self, url, json):
+        await asyncio.sleep(0)
         FakeAsyncClient.last_url = url
         FakeAsyncClient.last_payload = json
-        return self._response()
-
-    async def _response(self):
         return FakeOllamaResponse()
 
 
