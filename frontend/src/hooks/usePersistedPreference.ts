@@ -7,14 +7,14 @@ export const usePersistedPreference = <T extends string>(
   defaultValue: T,
   isValid: (value: string) => value is T,
 ) => {
-  const [value, setValueState] = useState<T>(defaultValue);
+  const [preference, setPreference] = useState<T>(defaultValue);
 
   useEffect(() => {
     const loadPreference = async () => {
       try {
         const savedValue = await AsyncStorage.getItem(key);
         if (savedValue && isValid(savedValue)) {
-          setValueState(savedValue);
+          setPreference(savedValue);
         }
       } catch (error) {
         Logger.error(`Error loading persisted preference ${key}`, error);
@@ -24,7 +24,7 @@ export const usePersistedPreference = <T extends string>(
   }, [isValid, key]);
 
   const setValue = useCallback(async (nextValue: T) => {
-    setValueState(nextValue);
+    setPreference(nextValue);
     try {
       await AsyncStorage.setItem(key, nextValue);
     } catch (error) {
@@ -32,5 +32,5 @@ export const usePersistedPreference = <T extends string>(
     }
   }, [key]);
 
-  return [value, setValue] as const;
+  return [preference, setValue] as const;
 };

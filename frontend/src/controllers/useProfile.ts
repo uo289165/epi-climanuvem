@@ -13,10 +13,13 @@ const MAX_USERNAME_LENGTH = 20;
 
 export const useProfile = () => {
   const { t } = useTranslation();
-  const [userName, setUserName] = useState<string>('');
-  const [userEmail, setUserEmail] = useState<string>('');
-  const [newName, setNewName] = useState<string>('');
-  const [isGuest, setIsGuest] = useState<boolean>(false);
+  const initialUser = AuthService.getCurrentUser();
+  const initialIsGuest = initialUser ? initialUser.isAnonymous : isTestMode();
+  const initialName = initialUser?.isAnonymous ? '' : (initialUser?.displayName || '');
+  const [userName, setUserName] = useState<string>(initialName);
+  const [userEmail, setUserEmail] = useState<string>(initialUser?.email || '');
+  const [newName, setNewName] = useState<string>(initialName);
+  const [isGuest, setIsGuest] = useState<boolean>(initialIsGuest);
   
   const [saving, setSaving] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
@@ -72,6 +75,7 @@ export const useProfile = () => {
     
     if (result.success) {
       setUserName(trimmedName);
+      setNewName(trimmedName);
       showModal('success', t('profile.updated'), t('profile.updatedDesc'));
     } else {
       showModal('error', t('common.error'), getAuthErrorMessage(result.error ?? ''));

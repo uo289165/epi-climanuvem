@@ -12,8 +12,6 @@ import { LanguageMode, useLanguage } from '@/src/contexts/LanguageContext';
 import type { Theme } from '@/src/styles/theme';
 import type { useProfile } from '@/src/controllers/useProfile';
 
-const MAX_USERNAME_LENGTH = 20;
-
 interface ProfileViewProps {
   readonly controller: ReturnType<typeof useProfile>;
 }
@@ -180,7 +178,6 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
               onChangeText={setNewName}
               placeholder={t('profile.usernamePlaceholder')}
               placeholderTextColor="#999"
-              maxLength={MAX_USERNAME_LENGTH}
             />
             <View style={styles.saveAction}>
               <AuthButton
@@ -211,6 +208,7 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
         message={modalConfig.message}
         onClose={modalConfig.onClose || closeModal}
         onCancel={modalConfig.onCancel || closeModal}
+        confirmText={modalConfig.type === 'confirm' ? t('profile.yesDelete') : undefined}
       />
     </View>
   );

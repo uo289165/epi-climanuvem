@@ -131,9 +131,12 @@ class FakeAsyncClient:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    async def post(self, url, json):
+    def post(self, url, json):
         FakeAsyncClient.last_url = url
         FakeAsyncClient.last_payload = json
+        return self._response()
+
+    async def _response(self):
         return FakeOllamaResponse()
 
 

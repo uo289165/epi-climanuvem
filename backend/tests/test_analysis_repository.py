@@ -53,6 +53,16 @@ class FakeEngine:
         return FakeBegin(self.connection)
 
 
+def get_call(connection, index):
+    assert len(connection.calls) > index
+    return connection.calls[index]
+
+
+def get_last_call(connection):
+    assert connection.calls
+    return connection.calls[len(connection.calls) - 1]
+
+
 def test_save_cloud_analysis_maps_known_cloud_and_persists_box(monkeypatch):
     import app.data.analysis_repository as repository_module
 
@@ -64,7 +74,7 @@ def test_save_cloud_analysis_maps_known_cloud_and_persists_box(monkeypatch):
         [{"label": "cumulus", "confidence": 0.8, "box_2d": [1, 2, 3, 4]}],
     )
 
-    insert_call = connection.calls[-1]
+    insert_call = get_last_call(connection)
     assert "INSERT INTO analysis_cloud" in insert_call[0]
     assert insert_call[1] == {
         "analysis_id": 9,
@@ -102,8 +112,9 @@ def test_create_analysis_inserts_and_returns_id():
     )
 
     assert analysis_id == 99
-    assert "INSERT INTO analysis" in connection.calls[0][0]
-    assert connection.calls[0][1]["uid"] == "user-1"
+    insert_call = get_call(connection, 0)
+    assert "INSERT INTO analysis" in insert_call[0]
+    assert insert_call[1]["uid"] == "user-1"
 
 
 def test_get_history_rows_filters_by_uid():
@@ -114,8 +125,9 @@ def test_get_history_rows_filters_by_uid():
     result = AnalysisRepository(connection).get_history_rows("user-1")
 
     assert result == rows
-    assert "FROM analysis a" in connection.calls[0][0]
-    assert connection.calls[0][1] == {"uid": "user-1"}
+    select_call = get_call(connection, 0)
+    assert "FROM analysis a" in select_call[0]
+    assert select_call[1] == {"uid": "user-1"}
 
 
 def test_delete_user_analyses_deletes_children_and_returns_image_paths():
@@ -126,9 +138,9 @@ def test_delete_user_analyses_deletes_children_and_returns_image_paths():
     image_paths = AnalysisRepository(connection).delete_user_analyses("user-1")
 
     assert image_paths == ["/uploads/user/cloud.jpg"]
-    assert "SELECT id, image_path FROM analysis" in connection.calls[0][0]
-    assert "DELETE FROM analysis_cloud" in connection.calls[1][0]
-    assert "DELETE FROM analysis WHERE" in connection.calls[2][0]
+    assert "SELECT id, image_path FROM analysis" in get_call(connection, 0)[0]
+    assert "DELETE FROM analysis_cloud" in get_call(connection, 1)[0]
+    assert "DELETE FROM analysis WHERE" in get_call(connection, 2)[0]
 
 
 def test_delete_analysis_returns_none_when_not_found():
@@ -149,8 +161,8 @@ def test_delete_analysis_deletes_and_returns_image_path():
     image_path = AnalysisRepository(connection).delete_analysis(7, "user-1")
 
     assert image_path == "/uploads/user/cloud.jpg"
-    assert "DELETE FROM analysis_cloud" in connection.calls[1][0]
-    assert "DELETE FROM analysis WHERE" in connection.calls[2][0]
+    assert "DELETE FROM analysis_cloud" in get_call(connection, 1)[0]
+    assert "DELETE FROM analysis WHERE" in get_call(connection, 2)[0]
 
 
 def test_get_analysis_status_returns_status_from_session():
@@ -161,7 +173,7 @@ def test_get_analysis_status_returns_status_from_session():
     status = AnalysisRepository(connection).get_analysis_status(7)
 
     assert status == "analyzing"
-    assert "SELECT status FROM analysis" in connection.calls[0][0]
+    assert "SELECT status FROM analysis" in get_call(connection, 0)[0]
 
 
 def test_cancel_analysis_reports_invalid_states_and_updates_analyzing():
@@ -176,4 +188,4 @@ def test_cancel_analysis_reports_invalid_states_and_updates_analyzing():
     analyzing_row = type("Row", (), {"id": 7, "status": "analyzing"})()
     connection.queue_result(FakeResult(row=analyzing_row))
     assert AnalysisRepository(connection).cancel_analysis(7, "user-1") == AnalysisRepository.CANCEL_CANCELLED
-    assert "UPDATE analysis SET status = 'cancelled'" in connection.calls[-1][0]
+    assert "UPDATE analysis SET status = 'cancelled'" in get_last_call(connection)[0]

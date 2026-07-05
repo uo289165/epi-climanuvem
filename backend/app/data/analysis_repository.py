@@ -188,43 +188,50 @@ class AnalysisRepository:
                 {"status": status, "id": analysis_id},
             )
 
-    def save_cloud_analysis(self, analysis_id: int, predictions: list):
-        def save_with_connection(conn):
-            for pred in predictions:
-                label = pred.get("label")
-                confidence = pred.get("confidence", 0.0)
-                
-                mapped_name = CLOUD_NAME_MAPPING.get(label.lower() if label else "")
-                
-                if not mapped_name:
-                    continue
-                
-                cloud_query = text("SELECT id FROM clouds WHERE name = :name")
-                cloud_id = conn.execute(cloud_query, {"name": mapped_name}).scalar()
-                
-                if cloud_id:
-                    box_2d = pred.get("box_2d")
-                    box_ymin, box_xmin, box_ymax, box_xmax = (None, None, None, None)
-                    if box_2d and isinstance(box_2d, list) and len(box_2d) == 4:
-                        box_ymin, box_xmin, box_ymax, box_xmax = box_2d
-                        
-                    insert_assoc = text("""
-                        INSERT INTO analysis_cloud (analysis_id, cloud_id, confidence, box_ymin, box_xmin, box_ymax, box_xmax)
-                        VALUES (:analysis_id, :cloud_id, :confidence, :box_ymin, :box_xmin, :box_ymax, :box_xmax)
-                    """)
-                    conn.execute(insert_assoc, {
-                        "analysis_id": analysis_id,
-                        "cloud_id": cloud_id,
-                        "confidence": confidence,
-                        "box_ymin": box_ymin,
-                        "box_xmin": box_xmin,
-                        "box_ymax": box_ymax,
-                        "box_xmax": box_xmax
-                    })
+    def _mapped_cloud_name(self, prediction: dict) -> str | None:
+        label = prediction.get("label")
+        return CLOUD_NAME_MAPPING.get(label.lower() if label else "")
 
+    def _get_cloud_id(self, conn, cloud_name: str):
+        cloud_query = text("SELECT id FROM clouds WHERE name = :name")
+        return conn.execute(cloud_query, {"name": cloud_name}).scalar()
+
+    def _extract_box(self, prediction: dict):
+        box_2d = prediction.get("box_2d")
+        if isinstance(box_2d, list) and len(box_2d) == 4:
+            return box_2d
+        return (None, None, None, None)
+
+    def _insert_cloud_association(self, conn, analysis_id: int, prediction: dict, cloud_id: int):
+        box_ymin, box_xmin, box_ymax, box_xmax = self._extract_box(prediction)
+        insert_assoc = text("""
+            INSERT INTO analysis_cloud (analysis_id, cloud_id, confidence, box_ymin, box_xmin, box_ymax, box_xmax)
+            VALUES (:analysis_id, :cloud_id, :confidence, :box_ymin, :box_xmin, :box_ymax, :box_xmax)
+        """)
+        conn.execute(insert_assoc, {
+            "analysis_id": analysis_id,
+            "cloud_id": cloud_id,
+            "confidence": prediction.get("confidence", 0.0),
+            "box_ymin": box_ymin,
+            "box_xmin": box_xmin,
+            "box_ymax": box_ymax,
+            "box_xmax": box_xmax
+        })
+
+    def _save_cloud_predictions(self, conn, analysis_id: int, predictions: list):
+        for prediction in predictions:
+            mapped_name = self._mapped_cloud_name(prediction)
+            if not mapped_name:
+                continue
+
+            cloud_id = self._get_cloud_id(conn, mapped_name)
+            if cloud_id:
+                self._insert_cloud_association(conn, analysis_id, prediction, cloud_id)
+
+    def save_cloud_analysis(self, analysis_id: int, predictions: list):
         if self.db is not None:
-            save_with_connection(self.db)
+            self._save_cloud_predictions(self.db, analysis_id, predictions)
             return
 
         with engine.begin() as conn:
-            save_with_connection(conn)
+            self._save_cloud_predictions(conn, analysis_id, predictions)
