@@ -1,5 +1,6 @@
 import { BackendService } from '@/src/services/BackendService';
 import { Logger } from '@/src/services/LoggerService';
+import { GUEST_DEMO_HISTORY } from '@/src/services/mockData';
 
 export interface AnalysisHistoryItem {
   id: string;
@@ -19,34 +20,19 @@ export interface AnalysisHistoryItem {
 
 export class AnalysisService {
   static async uploadImage(imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string, includeExplainability: boolean = false) {
-    try {
-      return await BackendService.uploadImage(imageUri, locationStr, latitude, longitude, fcmToken, includeExplainability);
-    } catch (error) {
-      Logger.error('Error uploading image to backend', error);
-      throw error;
-    }
+    return BackendService.uploadImage(imageUri, locationStr, latitude, longitude, fcmToken, includeExplainability);
   }
 
   static async deleteAnalysis(analysisId: string) {
-    try {
-      return await BackendService.deleteAnalysis(analysisId);
-    } catch (error) {
-      Logger.error('Error deleting analysis', error);
-      throw error;
-    }
+    return BackendService.deleteAnalysis(analysisId);
   }
 
   static async cancelAnalysis(analysisId: string) {
-    try {
-      return await BackendService.cancelAnalysis(analysisId);
-    } catch (error) {
-      Logger.error('Error cancelling analysis', error);
-      throw error;
-    }
+    return BackendService.cancelAnalysis(analysisId);
   }
 
   static async getHistory(isLoggedIn: boolean): Promise<AnalysisHistoryItem[]> {
-    // Simulamos un retraso de red
+    // Keep a short delay so the loading state is visible and does not flash.
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     if (isLoggedIn) {
@@ -57,17 +43,7 @@ export class AnalysisService {
         Logger.error('Error al obtener el historial de análisis', error);
         return [];
       }
-    } else {
-      // Retornamos análisis de la sesión actual para invitados
-      return [
-        {
-          id: 'temp-1',
-          status: 'analyzing',
-          date: new Date().toISOString(),
-          location: 'Ubicación actual',
-          imageUrl: 'https://picsum.photos/id/1015/800/600',
-        },
-      ];
     }
+    return GUEST_DEMO_HISTORY;
   }
 }

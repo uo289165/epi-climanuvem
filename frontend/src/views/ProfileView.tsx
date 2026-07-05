@@ -1,107 +1,110 @@
 import React from 'react';
-import { View, Text, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
-import { useTheme } from '@/src/contexts/ThemeContext';
+import { View, Text, TextInput, ScrollView, TouchableOpacity } from 'react-native';
+import { ThemeMode, useTheme } from '@/src/contexts/ThemeContext';
 import { getProfileViewStyles } from '@/src/styles/globalStyles';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AuthButton } from '@/components/ui/AuthButton';
-import { StatusModal, ModalType } from '@/components/ui/StatusModal';
+import { StatusModal } from '@/components/ui/StatusModal';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { useTranslation } from 'react-i18next';
-import { useLanguage } from '@/src/contexts/LanguageContext';
+import { LanguageMode, useLanguage } from '@/src/contexts/LanguageContext';
+import type { Theme } from '@/src/styles/theme';
+import type { useProfile } from '@/src/controllers/useProfile';
+
+const MAX_USERNAME_LENGTH = 20;
 
 interface ProfileViewProps {
-  controller: {
-    userName: string;
-    userEmail: string;
-    newName: string;
-    isGuest: boolean;
-    setNewName: (name: string) => void;
-    saving: boolean;
-    deleting: boolean;
-    showDeleteConfirm: boolean;
-    handleUpdateName: () => void;
-    confirmDeleteAccount: () => void;
-    cancelDeleteAccount: () => void;
-    proceedWithDelete: () => void;
-    handleGoBack: () => void;
-    modalVisible: boolean;
-    modalType: ModalType;
-    modalTitle: string;
-    modalMessage: string;
-    closeModal: () => void;
-  };
+  readonly controller: ReturnType<typeof useProfile>;
 }
 
-const AppearanceSection = ({ theme, themeMode, setThemeMode, t, styles }: any) => (
+type PickerOption<T extends string> = {
+  value: T;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+interface OptionPickerProps<T extends string> {
+  readonly options: PickerOption<T>[];
+  readonly value: T;
+  readonly onChange: (value: T) => void;
+  readonly theme: Theme;
+  readonly styles: ReturnType<typeof getProfileViewStyles>;
+}
+
+const OptionPicker = <T extends string>({ options, value, onChange, theme, styles }: OptionPickerProps<T>) => (
+  <View style={{ flexDirection: 'row', gap: 10 }}>
+    {options.map((option) => (
+      <TouchableOpacity
+        key={option.value}
+        style={[styles.themeButton, value === option.value && styles.themeButtonActive]}
+        onPress={() => onChange(option.value)}
+      >
+        <Ionicons name={option.icon} size={18} color={value === option.value ? theme.colors.primary : theme.colors.textSecondary} />
+        <Text style={[styles.themeButtonText, value === option.value && { color: theme.colors.primary }]}>{option.label}</Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+);
+
+const AppearanceSection = ({ theme, themeMode, setThemeMode, t, styles }: {
+  theme: Theme;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+  t: (key: string) => string;
+  styles: ReturnType<typeof getProfileViewStyles>;
+}) => (
   <View style={styles.card}>
     <Text style={styles.sectionTitle}>{t('profile.appearance')}</Text>
     <Text style={styles.warningText}>
       {t('profile.appearanceDesc')}
     </Text>
-    <View style={{ flexDirection: 'row', gap: 10 }}>
-      <TouchableOpacity 
-        style={[styles.themeButton, themeMode === 'light' && styles.themeButtonActive]} 
-        onPress={() => setThemeMode('light')}
-      >
-        <Ionicons name="sunny-outline" size={18} color={themeMode === 'light' ? theme.colors.primary : theme.colors.textSecondary} />
-        <Text style={[styles.themeButtonText, themeMode === 'light' && { color: theme.colors.primary }]}>{t('common.light')}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[styles.themeButton, themeMode === 'dark' && styles.themeButtonActive]} 
-        onPress={() => setThemeMode('dark')}
-      >
-        <Ionicons name="moon-outline" size={18} color={themeMode === 'dark' ? theme.colors.primary : theme.colors.textSecondary} />
-        <Text style={[styles.themeButtonText, themeMode === 'dark' && { color: theme.colors.primary }]}>{t('common.dark')}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[styles.themeButton, themeMode === 'system' && styles.themeButtonActive]} 
-        onPress={() => setThemeMode('system')}
-      >
-        <Ionicons name="phone-portrait-outline" size={18} color={themeMode === 'system' ? theme.colors.primary : theme.colors.textSecondary} />
-        <Text style={[styles.themeButtonText, themeMode === 'system' && { color: theme.colors.primary }]}>{t('common.system')}</Text>
-      </TouchableOpacity>
-    </View>
+    <OptionPicker<ThemeMode>
+      theme={theme}
+      styles={styles}
+      value={themeMode}
+      onChange={setThemeMode}
+      options={[
+        { value: 'light', label: t('common.light'), icon: 'sunny-outline' },
+        { value: 'dark', label: t('common.dark'), icon: 'moon-outline' },
+        { value: 'system', label: t('common.system'), icon: 'phone-portrait-outline' },
+      ]}
+    />
   </View>
 );
 
-const LanguageSection = ({ theme, languageMode, setLanguageMode, t, styles }: any) => (
+const LanguageSection = ({ theme, languageMode, setLanguageMode, t, styles }: {
+  theme: Theme;
+  languageMode: LanguageMode;
+  setLanguageMode: (mode: LanguageMode) => void;
+  t: (key: string) => string;
+  styles: ReturnType<typeof getProfileViewStyles>;
+}) => (
   <View style={styles.card}>
     <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
     <Text style={styles.warningText}>
       {t('profile.languageDesc')}
     </Text>
-    <View style={{ flexDirection: 'row', gap: 10 }}>
-      <TouchableOpacity 
-        style={[styles.themeButton, languageMode === 'en' && styles.themeButtonActive]} 
-        onPress={() => setLanguageMode('en')}
-      >
-        <Ionicons name="language-outline" size={18} color={languageMode === 'en' ? theme.colors.primary : theme.colors.textSecondary} />
-        <Text style={[styles.themeButtonText, languageMode === 'en' && { color: theme.colors.primary }]}>{t('common.english')}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[styles.themeButton, languageMode === 'es' && styles.themeButtonActive]} 
-        onPress={() => setLanguageMode('es')}
-      >
-        <Ionicons name="language-outline" size={18} color={languageMode === 'es' ? theme.colors.primary : theme.colors.textSecondary} />
-        <Text style={[styles.themeButtonText, languageMode === 'es' && { color: theme.colors.primary }]}>{t('common.spanish')}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[styles.themeButton, languageMode === 'system' && styles.themeButtonActive]} 
-        onPress={() => setLanguageMode('system')}
-      >
-        <Ionicons name="phone-portrait-outline" size={18} color={languageMode === 'system' ? theme.colors.primary : theme.colors.textSecondary} />
-        <Text style={[styles.themeButtonText, languageMode === 'system' && { color: theme.colors.primary }]}>{t('common.system')}</Text>
-      </TouchableOpacity>
-    </View>
+    <OptionPicker<LanguageMode>
+      theme={theme}
+      styles={styles}
+      value={languageMode}
+      onChange={setLanguageMode}
+      options={[
+        { value: 'en', label: t('common.english'), icon: 'language-outline' },
+        { value: 'es', label: t('common.spanish'), icon: 'language-outline' },
+        { value: 'system', label: t('common.system'), icon: 'phone-portrait-outline' },
+      ]}
+    />
   </View>
 );
 
-const DangerZoneSection = ({ confirmDeleteAccount, deleting, t, styles }: any) => (
+const DangerZoneSection = ({ confirmDeleteAccount, deleting, t, styles }: {
+  confirmDeleteAccount: () => void;
+  deleting: boolean;
+  t: (key: string) => string;
+  styles: ReturnType<typeof getProfileViewStyles>;
+}) => (
   <View style={[styles.card, styles.dangerCard]}>
     <Text style={[styles.sectionTitle, styles.dangerText]}>{t('profile.dangerZone')}</Text>
     <Text style={styles.warningText}>
@@ -118,7 +121,10 @@ const DangerZoneSection = ({ confirmDeleteAccount, deleting, t, styles }: any) =
   </View>
 );
 
-const GuestInfoSection = ({ t, styles }: any) => (
+const GuestInfoSection = ({ t, styles }: {
+  t: (key: string) => string;
+  styles: ReturnType<typeof getProfileViewStyles>;
+}) => (
   <View style={styles.card}>
     <Text style={styles.sectionTitle}>{t('profile.guestPreferencesTitle')}</Text>
     <Text style={styles.warningText}>{t('profile.guestPreferencesDesc')}</Text>
@@ -134,16 +140,12 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
     setNewName,
     saving,
     deleting,
-    showDeleteConfirm,
+    canSaveName,
     handleUpdateName,
     confirmDeleteAccount,
-    cancelDeleteAccount,
-    proceedWithDelete,
     handleGoBack,
     modalVisible,
-    modalType,
-    modalTitle,
-    modalMessage,
+    modalConfig,
     closeModal,
   } = controller;
 
@@ -151,10 +153,7 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
   const { languageMode, setLanguageMode } = useLanguage();
   const { t } = useTranslation();
   const styles = getProfileViewStyles(theme);
-
-  const trimmedName = newName.trim();
-  const hasValidNameLength = trimmedName.length >= 3 && trimmedName.length <= 20;
-  const hasNameChanged = trimmedName !== userName && hasValidNameLength;
+  const displayName = isGuest ? t('common.guest') : userName;
 
   return (
     <View style={styles.container}>
@@ -166,7 +165,7 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
             <Ionicons name="person" size={48} color={theme.colors.primary} />
           </View>
           <ThemedText style={styles.emailText}>
-            {isGuest ? userName : userEmail}
+            {isGuest ? displayName : userEmail}
           </ThemedText>
         </View>
 
@@ -181,13 +180,14 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
               onChangeText={setNewName}
               placeholder={t('profile.usernamePlaceholder')}
               placeholderTextColor="#999"
+              maxLength={MAX_USERNAME_LENGTH}
             />
             <View style={styles.saveAction}>
               <AuthButton
                 title={saving ? t('common.saving') : t('common.save')}
                 onPress={handleUpdateName}
                 variant="primary"
-                disabled={!hasNameChanged || saving}
+                disabled={!canSaveName}
                 textStyle={{ fontSize: 14 }}
                 style={{ paddingVertical: 12, paddingHorizontal: 20 }}
               />
@@ -204,35 +204,13 @@ export function ProfileView({ controller }: Readonly<ProfileViewProps>) {
         )}
       </ScrollView>
 
-      {/* Modal de confirmación de borrado */}
-      <Modal visible={showDeleteConfirm} transparent={true} animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalIconContainer}>
-              <Ionicons name="warning" size={40} color={theme.colors.danger} />
-            </View>
-            <Text style={styles.modalTitle}>{t('profile.deleteConfirmTitle')}</Text>
-            <Text style={styles.modalBody}>
-              {t('profile.deleteConfirmBody')}
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={cancelDeleteAccount}>
-                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmDeleteButton} onPress={proceedWithDelete}>
-                <Text style={styles.confirmDeleteButtonText}>{t('profile.yesDelete')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       <StatusModal
         visible={modalVisible}
-        type={modalType}
-        title={modalTitle}
-        message={modalMessage}
-        onClose={closeModal}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={modalConfig.onClose || closeModal}
+        onCancel={modalConfig.onCancel || closeModal}
       />
     </View>
   );

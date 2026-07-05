@@ -3,6 +3,8 @@ import { Logger } from '@/src/services/LoggerService';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 const IMAGE_TOO_LARGE_CODE = 'IMAGE_TOO_LARGE_MAX_5MB';
+const DEFAULT_TIMEOUT_MS = 10000;
+const MUTATION_TIMEOUT_MS = 15000;
 
 const backendUrl = (path: string) => `${BACKEND_URL}${path}`;
 
@@ -28,71 +30,91 @@ const mapBackendError = async (response: Response): Promise<Error> => {
   return new Error(detail || `Error del servidor: ${response.status}`);
 };
 
+type AuthorizedFetchOptions = {
+  body?: BodyInit;
+  timeoutMs?: number;
+  headers?: Record<string, string>;
+  reachabilityPath?: string;
+};
+
+const authorizedFetch = async (
+  method: string,
+  path: string,
+  options: AuthorizedFetchOptions = {},
+) => {
+  const { body, timeoutMs = DEFAULT_TIMEOUT_MS, headers = {}, reachabilityPath = path } = options;
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
+  }
+
+  const token = await user.getIdToken(true);
+  const requestHeaders: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    ...headers,
+  };
+
+  if (!body || !(body instanceof FormData)) {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
+
+  logBackendRequest(method, path);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(backendUrl(path), {
+      method,
+      headers: requestHeaders,
+      body,
+      signal: controller.signal,
+    });
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      Logger.error(`Backend request timed out after ${timeoutMs}ms`, { method, path, backendUrl: BACKEND_URL });
+      throw new Error(backendReachabilityMessage(reachabilityPath));
+    }
+    if (isNetworkError(error)) {
+      Logger.error('Backend network error', { method, path, backendUrl: BACKEND_URL, error });
+      throw new Error(backendReachabilityMessage(reachabilityPath));
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const parseJsonResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw await mapBackendError(response);
+  }
+  return response.json();
+};
+
+const normalizeHistoryImageUrls = (data: any[]) =>
+  data.map((item: any) => {
+    if (item.imageUrl?.startsWith('/uploads/')) {
+      item.imageUrl = `${BACKEND_URL}${item.imageUrl}`;
+    }
+    return item;
+  });
+
 export const BackendService = {
-
-  /**
-   * Realiza una petición GET al endpoint de prueba del backend.
-   * Requiere que el usuario esté autenticado para enviar el token ID.
-   */
   testEndpoint: async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
-      }
-
       Logger.debug('Obteniendo token de Firebase para endpoint de prueba');
-      const token = await user.getIdToken(true);
-      Logger.debug('Token obtenido; enviando request a endpoint de prueba');
-
-      logBackendRequest('GET', '/test');
-      const response = await fetch(backendUrl('/test'), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      const response = await authorizedFetch('GET', '/test');
       Logger.info('Respuesta recibida de endpoint de prueba', { status: response.status });
-
-      if (!response.ok) {
-        throw await mapBackendError(response);
-      }
-
-      return await response.json();
+      return await parseJsonResponse(response);
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        Logger.error('La petición de prueba excedió el tiempo de espera de 10s', { backendUrl: BACKEND_URL });
-        throw new Error(backendReachabilityMessage('/test'));
-      }
-      if (isNetworkError(error)) {
-        Logger.error('Error de red en BackendService.testEndpoint', { backendUrl: BACKEND_URL, error });
-        throw new Error(backendReachabilityMessage('/test'));
-      }
       Logger.error('Error en BackendService.testEndpoint', error);
       throw error;
     }
   },
 
-  /**
-   * Sube una imagen para su análisis con su ubicación.
-   * Requiere autenticación.
-   */
   uploadImage: async (imageUri: string, locationStr: string, latitude?: number, longitude?: number, fcmToken?: string, includeExplainability: boolean = false) => {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
-      }
-      const token = await user.getIdToken(true);
-      
       const formData = new FormData();
       const filename = imageUri.split('/').pop() || 'photo.jpg';
       const match = /\.(\w+)$/.exec(filename);
@@ -114,219 +136,58 @@ export const BackendService = {
       }
       formData.append('include_explainability', String(includeExplainability));
 
-      logBackendRequest('POST', '/analysis/upload');
-      const response = await fetch(backendUrl('/analysis/upload'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Fetch sets Content-Type automatically for FormData boundary
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw await mapBackendError(response);
-      }
-
-      return await response.json();
+      const response = await authorizedFetch('POST', '/analysis/upload', { body: formData, timeoutMs: MUTATION_TIMEOUT_MS });
+      return await parseJsonResponse(response);
     } catch (error: any) {
-      if (isNetworkError(error)) {
-        Logger.error('Error de red en BackendService.uploadImage', { backendUrl: BACKEND_URL, error });
-        throw new Error(backendReachabilityMessage('/analysis/upload'));
-      }
       Logger.error('Error en BackendService.uploadImage', error);
       throw error;
     }
   },
 
-  /**
-   * Obtiene el historial real de análisis del usuario.
-   * Requiere autenticación.
-   */
   getAnalysisHistory: async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
-      }
-
-      const token = await user.getIdToken(true);
-      logBackendRequest('GET', '/analysis/history');
-      const response = await fetch(backendUrl('/analysis/history'), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw await mapBackendError(response);
-      }
-
-      const data = await response.json();
-      return data.map((item: any) => {
-        if (item.imageUrl?.startsWith('/uploads/')) {
-          item.imageUrl = `${BACKEND_URL}${item.imageUrl}`;
-        }
-        return item;
-      });
+      const response = await authorizedFetch('GET', '/analysis/history');
+      const data = await parseJsonResponse(response);
+      return normalizeHistoryImageUrls(data);
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        Logger.error('La petición de historial excedió el tiempo de espera', { backendUrl: BACKEND_URL });
-        throw new Error(backendReachabilityMessage('/analysis/history'));
-      }
-      if (isNetworkError(error)) {
-        Logger.error('Error de red en BackendService.getAnalysisHistory', { backendUrl: BACKEND_URL, error });
-        throw new Error(backendReachabilityMessage('/analysis/history'));
-      }
       Logger.error('Error en BackendService.getAnalysisHistory', error);
       throw error;
     }
   },
 
-  /**
-   * Elimina todos los análisis y datos asociados al usuario actual.
-   * Requiere autenticación.
-   */
   deleteUserData: async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
-      }
-
-      const token = await user.getIdToken(true);
-      logBackendRequest('DELETE', '/analysis/user-data');
-      const response = await fetch(backendUrl('/analysis/user-data'), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw await mapBackendError(response);
-      }
-
-      return await response.json();
+      const response = await authorizedFetch('DELETE', '/analysis/user-data', { timeoutMs: MUTATION_TIMEOUT_MS });
+      return await parseJsonResponse(response);
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        Logger.error('La petición de borrar datos excedió el tiempo de espera', { backendUrl: BACKEND_URL });
-        throw new Error(backendReachabilityMessage('/analysis/user-data'));
-      }
-      if (isNetworkError(error)) {
-        Logger.error('Error de red en BackendService.deleteUserData', { backendUrl: BACKEND_URL, error });
-        throw new Error(backendReachabilityMessage('/analysis/user-data'));
-      }
       Logger.error('Error en BackendService.deleteUserData', error);
       throw error;
     }
   },
 
-  /**
-   * Elimina un análisis específico del historial.
-   * Requiere autenticación.
-   */
   deleteAnalysis: async (analysisId: string) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
-      }
-
-      const token = await user.getIdToken(true);
       const path = `/analysis/${analysisId}`;
-      logBackendRequest('DELETE', path);
-      const response = await fetch(backendUrl(path), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        signal: controller.signal,
+      const response = await authorizedFetch('DELETE', path, {
+        timeoutMs: MUTATION_TIMEOUT_MS,
+        reachabilityPath: '/analysis/{analysisId}',
       });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw await mapBackendError(response);
-      }
-
-      return await response.json();
+      return await parseJsonResponse(response);
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        Logger.error('La petición de eliminar análisis excedió el tiempo de espera', { backendUrl: BACKEND_URL });
-        throw new Error(backendReachabilityMessage('/analysis/{analysisId}'));
-      }
-      if (isNetworkError(error)) {
-        Logger.error('Error de red en BackendService.deleteAnalysis', { backendUrl: BACKEND_URL, error });
-        throw new Error(backendReachabilityMessage('/analysis/{analysisId}'));
-      }
       Logger.error('Error en BackendService.deleteAnalysis', error);
       throw error;
     }
   },
 
-  /**
-   * Cancela un análisis que esté en progreso.
-   * Requiere autenticación.
-   */
   cancelAnalysis: async (analysisId: string) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No hay usuario autenticado. Por favor, inicia sesión.');
-      }
-
-      const token = await user.getIdToken(true);
       const path = `/analysis/${analysisId}/cancel`;
-      logBackendRequest('PATCH', path);
-      const response = await fetch(backendUrl(path), {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        signal: controller.signal,
+      const response = await authorizedFetch('PATCH', path, {
+        timeoutMs: MUTATION_TIMEOUT_MS,
+        reachabilityPath: '/analysis/{analysisId}/cancel',
       });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw await mapBackendError(response);
-      }
-
-      return await response.json();
+      return await parseJsonResponse(response);
     } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        Logger.error('La petición de cancelar análisis excedió el tiempo de espera', { backendUrl: BACKEND_URL });
-        throw new Error(backendReachabilityMessage('/analysis/{analysisId}/cancel'));
-      }
-      if (isNetworkError(error)) {
-        Logger.error('Error de red en BackendService.cancelAnalysis', { backendUrl: BACKEND_URL, error });
-        throw new Error(backendReachabilityMessage('/analysis/{analysisId}/cancel'));
-      }
       Logger.error('Error en BackendService.cancelAnalysis', error);
       throw error;
     }

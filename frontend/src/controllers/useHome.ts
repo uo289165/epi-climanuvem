@@ -2,33 +2,40 @@ import { useState, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { AuthService } from '@/src/services/AuthService';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
-import { auth } from '@/src/config/firebaseConfig';
-import { useTranslation } from 'react-i18next';
+import { isTestMode } from '@/src/utils/environment';
 
 export const useHome = () => {
   const historyHook = useAnalysisHistory();
-  const { t } = useTranslation();
-  const [userName, setUserName] = useState<string>('');
+  const [userDisplayName, setUserDisplayName] = useState<string | undefined>();
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [isGuest, setIsGuest] = useState<boolean>(false);
 
   useFocusEffect(
     useCallback(() => {
-      if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
-        setUserName(t('common.guest'));
+      if (isTestMode()) {
+        setIsGuest(true);
+        setUserDisplayName(undefined);
+        setUserEmail('');
         return;
       }
 
-      const user = auth.currentUser;
-      if (user) {
-        setUserName(user.isAnonymous ? t('common.guest') : (user.displayName || user.email || t('common.user')));
-      } else {
-        router.replace('/' as any);
-      }
-    }, [t])
+      const unsubscribe = AuthService.onAuthChange((user) => {
+        if (user) {
+          setIsGuest(user.isAnonymous);
+          setUserDisplayName(user.displayName);
+          setUserEmail(user.email);
+        } else {
+          router.replace('/' as any);
+        }
+      });
+
+      return unsubscribe;
+    }, [])
   );
 
 
   const handleLogout = async () => {
-    if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+    if (isTestMode()) {
       router.replace('/');
       return;
     }
@@ -49,7 +56,9 @@ export const useHome = () => {
     handleLogout,
     handleNavigateToCapture,
     handleNavigateToProfile,
-    userName,
+    userDisplayName,
+    userEmail,
+    isGuest,
     ...historyHook,
   };
 };

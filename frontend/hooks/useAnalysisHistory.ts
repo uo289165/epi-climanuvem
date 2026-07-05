@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DeviceEventEmitter, Platform } from 'react-native';
 import { AnalysisService, AnalysisHistoryItem } from '@/src/services/AnalysisService';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/src/config/firebaseConfig';
 import * as Notifications from 'expo-notifications';
 import { Logger } from '@/src/services/LoggerService';
 import { useNotificationResponse } from '@/hooks/useNotificationResponse';
+import { AuthService } from '@/src/services/AuthService';
+import { isTestMode } from '@/src/utils/environment';
 
 export const useAnalysisHistory = () => {
-  const notificationsEnabled = Platform.OS !== 'web' && process.env.EXPO_PUBLIC_TEST_MODE !== 'true';
+  const notificationsEnabled = Platform.OS !== 'web' && !isTestMode();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
@@ -21,12 +21,12 @@ export const useAnalysisHistory = () => {
   const lastNotificationResponse = useNotificationResponse();
 
   useEffect(() => {
-    if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
+    if (isTestMode()) {
       setIsLoggedIn(true);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = AuthService.onAuthChange((user) => {
       setIsLoggedIn(!!user);
       if (!user) {
         setHistory([]);

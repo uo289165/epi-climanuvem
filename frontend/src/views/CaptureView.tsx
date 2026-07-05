@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, ScrollView, Switch } from 'react-native';
+import { View, Text, ScrollView, Switch } from 'react-native';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { getCaptureViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
@@ -7,23 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { StatusModal } from '@/components/ui/StatusModal';
 import { useTranslation } from 'react-i18next';
+import { ListActionRow } from '@/components/ui/ListActionRow';
+import type { useCapture } from '@/src/controllers/useCapture';
 
 interface CaptureViewProps {
-  readonly controller: {
-    readonly handleCameraCapture: () => void;
-    readonly handleGallerySelection: () => void;
-    readonly modalVisible: boolean;
-    readonly modalConfig: {
-      type: 'loading' | 'success' | 'error' | 'info' | 'confirm';
-      title: string;
-      message: string;
-      onClose?: () => void;
-      onCancel?: () => void;
-    };
-    readonly hideModal: () => void;
-    readonly includeExplainability: boolean;
-    readonly setIncludeExplainability: (value: boolean) => void;
-  };
+  readonly controller: ReturnType<typeof useCapture>;
 }
 
 export function CaptureView({ controller }: CaptureViewProps) {
@@ -57,33 +45,37 @@ export function CaptureView({ controller }: CaptureViewProps) {
         </ThemedText>
 
         <View style={styles.optionsContainer}>
-          <TouchableOpacity 
-            style={styles.optionCard} 
-            onPress={handleCameraCapture} 
-          >
-            <View style={[styles.iconCircle, { backgroundColor: theme.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : '#E3F2FD' }]}>
-              <Ionicons name="camera" size={32} color={theme.colors.primary} />
-            </View>
-            <View style={styles.optionTextContainer}>
-              <Text style={styles.optionTitle}>{t('capture.title')}</Text>
-              <Text style={styles.optionDescription}>{t('capture.cameraDesc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.primary} />
-          </TouchableOpacity>
+          <ListActionRow
+            icon="camera"
+            title={t('capture.title')}
+            description={t('capture.cameraDesc')}
+            onPress={handleCameraCapture}
+            iconColor={theme.colors.primary}
+            iconBackgroundColor={theme.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : '#E3F2FD'}
+            chevronColor={theme.colors.primary}
+            size={32}
+            cardStyle={styles.optionCard}
+            iconContainerStyle={styles.iconCircle}
+            textContainerStyle={styles.optionTextContainer}
+            titleStyle={styles.optionTitle}
+            descriptionStyle={styles.optionDescription}
+          />
 
-          <TouchableOpacity 
-            style={styles.optionCard} 
-            onPress={handleGallerySelection} 
-          >
-            <View style={[styles.iconCircle, { backgroundColor: theme.mode === 'dark' ? 'rgba(156, 39, 176, 0.1)' : '#F3E5F5' }]}>
-              <Ionicons name="image" size={32} color={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'} />
-            </View>
-            <View style={styles.optionTextContainer}>
-              <Text style={styles.optionTitle}>{t('capture.gallery')}</Text>
-              <Text style={styles.optionDescription}>{t('capture.galleryDesc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'} />
-          </TouchableOpacity>
+          <ListActionRow
+            icon="image"
+            title={t('capture.gallery')}
+            description={t('capture.galleryDesc')}
+            onPress={handleGallerySelection}
+            iconColor={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'}
+            iconBackgroundColor={theme.mode === 'dark' ? 'rgba(156, 39, 176, 0.1)' : '#F3E5F5'}
+            chevronColor={theme.mode === 'dark' ? '#CE93D8' : '#9C27B0'}
+            size={32}
+            cardStyle={styles.optionCard}
+            iconContainerStyle={styles.iconCircle}
+            textContainerStyle={styles.optionTextContainer}
+            titleStyle={styles.optionTitle}
+            descriptionStyle={styles.optionDescription}
+          />
         </View>
 
         <View style={[styles.optionCard, { paddingVertical: 12, marginTop: 16, flexDirection: 'column', alignItems: 'stretch' }]}>

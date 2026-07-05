@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useMemo, useCallback } from 'react';
 import * as Localization from 'expo-localization';
 import i18n from '../i18n';
-import { Logger } from '../services/LoggerService';
+import { usePersistedPreference } from '@/src/hooks/usePersistedPreference';
 
 export type LanguageMode = 'en' | 'es' | 'system';
 
@@ -25,27 +24,13 @@ const getConfiguredLanguage = () => {
 
 export const useLanguage = () => useContext(LanguageContext);
 
+const isLanguageMode = (value: string): value is LanguageMode =>
+  value === 'en' || value === 'es' || value === 'system';
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [languageModeState, setLanguageModeState] = useState<LanguageMode>('system');
+  const [languageModeState, setStoredLanguageMode] = usePersistedPreference<LanguageMode>('appLanguage', 'system', isLanguageMode);
 
-  useEffect(() => {
-    const loadLanguage = async () => {
-      try {
-        const savedLanguage = await AsyncStorage.getItem('appLanguage');
-        if (savedLanguage === 'en' || savedLanguage === 'es' || savedLanguage === 'system') {
-          setLanguageModeState(savedLanguage);
-          applyLanguage(savedLanguage);
-        } else {
-          applyLanguage('system');
-        }
-      } catch (error) {
-        Logger.error('Error loading language preference', error);
-      }
-    };
-    loadLanguage();
-  }, []);
-
-  const applyLanguage = (mode: LanguageMode) => {
+  const applyLanguage = useCallback((mode: LanguageMode) => {
     const configuredLanguage = getConfiguredLanguage();
     if (configuredLanguage) {
       i18n.changeLanguage(configuredLanguage);
@@ -63,17 +48,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
     i18n.changeLanguage(lngToSet);
-  };
+  }, []);
 
   const setLanguageMode = useCallback(async (mode: LanguageMode) => {
-    setLanguageModeState(mode);
     applyLanguage(mode);
-    try {
-      await AsyncStorage.setItem('appLanguage', mode);
-    } catch (error) {
-      Logger.error('Error saving language preference', error);
-    }
-  }, []);
+    await setStoredLanguageMode(mode);
+  }, [applyLanguage, setStoredLanguageMode]);
+
+  useEffect(() => {
+    applyLanguage(languageModeState);
+  }, [applyLanguage, languageModeState]);
 
   const contextValue = useMemo(() => ({
     languageMode: languageModeState,

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { TextInput } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
 import { useTranslation } from 'react-i18next';
+import { useStatusModal } from '@/src/hooks/useStatusModal';
 
 import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
 
@@ -15,28 +16,7 @@ export const useRegister = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Estado para el modal de estado
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalConfig, setModalConfig] = useState<{
-    type: 'loading' | 'success' | 'error' | 'info';
-    title: string;
-    message: string;
-    onClose?: () => void;
-  }>({
-    type: 'loading',
-    title: '',
-    message: '',
-  });
-
-  const showModal = (type: 'loading' | 'success' | 'error' | 'info', title: string, message: string, onClose?: () => void) => {
-    setModalConfig({ type, title, message, onClose });
-    setModalVisible(true);
-  };
-
-  const hideModal = () => {
-    setModalVisible(false);
-  };
+  const { modalVisible, modalConfig, showModal, hideModal } = useStatusModal();
 
   // Referencias para el foco de los inputs
   const emailInputRef = useRef<TextInput>(null);

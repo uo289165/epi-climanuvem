@@ -16,17 +16,31 @@ import {
 } from 'firebase/auth';
 import type { User, AuthResponse } from '@/src/models/User';
 
-// Convierte un FirebaseUser al modelo local User
-const mapFirebaseUser = (fbUser: FirebaseUser): User => ({
+const mapFirebaseUser = (fbUser: Pick<FirebaseUser, 'uid' | 'displayName' | 'email' | 'isAnonymous'>, displayNameOverride?: string): User => ({
   uid: fbUser.uid,
-  displayName: fbUser.displayName ?? undefined,
+  displayName: displayNameOverride ?? fbUser.displayName ?? undefined,
   email: fbUser.email ?? '',
   isAnonymous: fbUser.isAnonymous,
 });
 
+const authError = (error: any): AuthResponse => ({
+  success: false,
+  error: error.code ?? 'Error desconocido',
+});
+
+const withAuthErrorHandling = async <T extends AuthResponse | { success: boolean; error?: string }>(
+  action: () => Promise<T>,
+): Promise<T> => {
+  try {
+    return await action();
+  } catch (error: any) {
+    return authError(error) as T;
+  }
+};
+
 export const AuthService = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    try {
+    return withAuthErrorHandling(async () => {
       const credential = await signInWithEmailAndPassword(auth, email, password);
       
       if (!credential.user.emailVerified) {
@@ -35,29 +49,18 @@ export const AuthService = {
       }
 
       return { success: true, user: mapFirebaseUser(credential.user) };
-    } catch (error: any) {
-      return { success: false, error: error.code ?? 'Error desconocido' };
-    }
+    });
   },
 
   register: async (username: string, email: string, password: string): Promise<AuthResponse> => {
-    try {
+    return withAuthErrorHandling(async () => {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(credential.user, { displayName: username });
-      
-      // Update the user object to include the new displayName immediately
-      const updatedUser = { ...credential.user, displayName: username } as FirebaseUser;
-      
-      // Enviar correo de verificación
       await sendEmailVerification(credential.user);
-      
-      // Cerrar sesión inmediatamente para requerir verificación antes de usar
       await signOut(auth);
 
-      return { success: true, user: mapFirebaseUser(updatedUser) };
-    } catch (error: any) {
-      return { success: false, error: error.code ?? 'Error desconocido' };
-    }
+      return { success: true, user: mapFirebaseUser(credential.user, username) };
+    });
   },
 
   logout: async (): Promise<void> => {
@@ -65,12 +68,10 @@ export const AuthService = {
   },
 
   resetPassword: async (email: string): Promise<{ success: boolean; error?: string }> => {
-    try {
+    return withAuthErrorHandling(async () => {
       await sendPasswordResetEmail(auth, email);
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.code ?? 'Error desconocido' };
-    }
+    });
   },
 
   onAuthChange: (callback: (user: User | null) => void): Unsubscribe => {
@@ -79,44 +80,45 @@ export const AuthService = {
     });
   },
 
+  onBootstrapAuthChange: (callback: (isAllowed: boolean, hasUser: boolean) => void | Promise<void>): Unsubscribe => {
+    return onAuthStateChanged(auth, (fbUser) => {
+      callback(!!fbUser && (fbUser.isAnonymous || fbUser.emailVerified), !!fbUser);
+    });
+  },
+
   loginWithGoogle: async (idToken: string): Promise<AuthResponse> => {
-    try {
+    return withAuthErrorHandling(async () => {
       const credential = GoogleAuthProvider.credential(idToken);
       const userCredential = await signInWithCredential(auth, credential);
       return { success: true, user: mapFirebaseUser(userCredential.user) };
-    } catch (error: any) {
-      return { success: false, error: error.code ?? 'Error desconocido' };
-    }
+    });
   },
 
   loginAnonymously: async (): Promise<AuthResponse> => {
-    try {
+    return withAuthErrorHandling(async () => {
       const credential = await signInAnonymously(auth);
       return { success: true, user: mapFirebaseUser(credential.user) };
-    } catch (error: any) {
-      return { success: false, error: error.code ?? 'Error desconocido' };
-    }
+    });
   },
 
   updateUserName: async (newName: string): Promise<AuthResponse> => {
-    try {
+    return withAuthErrorHandling(async () => {
       if (!auth.currentUser) throw new Error('No user logged in');
       await updateProfile(auth.currentUser, { displayName: newName });
-      
-      const updatedUser = { ...auth.currentUser, displayName: newName } as FirebaseUser;
-      return { success: true, user: mapFirebaseUser(updatedUser) };
-    } catch (error: any) {
-      return { success: false, error: error.code ?? 'Error desconocido' };
-    }
+
+      return { success: true, user: mapFirebaseUser(auth.currentUser, newName) };
+    });
   },
 
   deleteAccount: async (): Promise<{ success: boolean; error?: string }> => {
-    try {
+    return withAuthErrorHandling(async () => {
       if (!auth.currentUser) throw new Error('No user logged in');
       await deleteUser(auth.currentUser);
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.code ?? 'Error desconocido' };
-    }
+    });
+  },
+
+  getCurrentUser: (): User | null => {
+    return auth.currentUser ? mapFirebaseUser(auth.currentUser) : null;
   },
 };
