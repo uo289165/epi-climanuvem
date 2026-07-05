@@ -9,24 +9,24 @@ from app.business.analysis_service import AnalysisService
 async def test_process_image_saves_predictions_with_explainability(tmp_path):
     image_path = tmp_path / "cloud.jpg"
     image_path.write_bytes(b"image-bytes")
-    service = AnalysisService()
-    service.ollama_client = Mock()
-    service.ollama_client.analyze_image = AsyncMock(
+    ollama_client = Mock()
+    ollama_client.analyze_image = AsyncMock(
         return_value=[{"label": "cumulus", "confidence": 0.91}]
     )
-    service.ollama_client.get_explainability_boxes = AsyncMock(
+    ollama_client.get_explainability_boxes = AsyncMock(
         return_value=[{"label": "cumulus", "box_2d": [10, 20, 30, 40]}]
     )
-    service.repository = Mock()
+    repository = Mock()
+    service = AnalysisService(ollama_client=ollama_client, repository=repository)
     service._send_notification = Mock()
 
     await service.process_image(7, str(image_path), "fcm-token", explainability=True)
 
-    service.repository.save_cloud_analysis.assert_called_once_with(
+    repository.save_cloud_analysis.assert_called_once_with(
         7,
         [{"label": "cumulus", "confidence": 0.91, "box_2d": [10, 20, 30, 40]}],
     )
-    service.repository.update_status.assert_called_once_with(7, "completed")
+    repository.update_status.assert_called_once_with(7, "completed")
     service._send_notification.assert_called_once()
 
 
@@ -34,14 +34,14 @@ async def test_process_image_saves_predictions_with_explainability(tmp_path):
 async def test_process_image_marks_analysis_cancelled_on_error(tmp_path):
     image_path = tmp_path / "cloud.jpg"
     image_path.write_bytes(b"image-bytes")
-    service = AnalysisService()
-    service.ollama_client = Mock()
-    service.ollama_client.analyze_image = AsyncMock(side_effect=RuntimeError("ollama down"))
-    service.repository = Mock()
+    ollama_client = Mock()
+    ollama_client.analyze_image = AsyncMock(side_effect=RuntimeError("ollama down"))
+    repository = Mock()
+    service = AnalysisService(ollama_client=ollama_client, repository=repository)
     service._send_notification = Mock()
 
     await service.process_image(7, str(image_path), explainability=False)
 
-    service.repository.save_cloud_analysis.assert_not_called()
-    service.repository.update_status.assert_called_once_with(7, "cancelled")
+    repository.save_cloud_analysis.assert_not_called()
+    repository.update_status.assert_called_once_with(7, "cancelled")
     service._send_notification.assert_called_once()

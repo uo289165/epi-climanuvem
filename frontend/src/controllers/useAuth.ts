@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { TextInput, Platform } from 'react-native';
 import { AuthService } from '@/src/services/AuthService';
 import { EMAIL_REGEX, getAuthErrorMessage } from '@/src/utils/authUtils';
+import { Logger } from '@/src/services/LoggerService';
 import { useTranslation } from 'react-i18next';
 
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -45,7 +46,7 @@ export const useAuth = () => {
           webClientId: '404226456428-6kqoq5ic42g0g4k0qe9cur5qt85spu25.apps.googleusercontent.com',
         });
       } catch (error) {
-        console.log("Error al configurar Google Sign-in:", error);
+        Logger.error('Error al configurar Google Sign-in', error);
       }
     }
   }, []);
@@ -67,7 +68,7 @@ export const useAuth = () => {
         showModal('error', t('common.error'), t('auth.googleErrorDesc'));
       }
     } catch (error: any) {
-      console.log("Error Google Native:", error);
+      Logger.error('Error Google Native', error);
       // Manejar cancelaciones o errores específicos si es necesario
       if (error.code !== 'SIGN_IN_CANCELLED') {
         showModal('error', t('auth.googleError'), t('auth.googleErrorDesc'));

@@ -9,20 +9,17 @@ export const useHome = () => {
   const historyHook = useAnalysisHistory();
   const { t } = useTranslation();
   const [userName, setUserName] = useState<string>('');
-  const [isGuest, setIsGuest] = useState<boolean>(true);
 
   useFocusEffect(
     useCallback(() => {
       if (process.env.EXPO_PUBLIC_TEST_MODE === 'true') {
         setUserName(t('common.guest'));
-        setIsGuest(true);
         return;
       }
 
       const user = auth.currentUser;
       if (user) {
         setUserName(user.isAnonymous ? t('common.guest') : (user.displayName || user.email || t('common.user')));
-        setIsGuest(user.isAnonymous);
       } else {
         router.replace('/' as any);
       }
@@ -53,7 +50,6 @@ export const useHome = () => {
     handleNavigateToCapture,
     handleNavigateToProfile,
     userName,
-    isGuest,
     ...historyHook,
   };
 };

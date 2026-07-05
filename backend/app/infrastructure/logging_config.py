@@ -1,6 +1,6 @@
 import logging
 
-from app.infrastructure.config import LOG_LEVEL
+from app.infrastructure.config import get_settings
 
 _CONFIGURED = False
 
@@ -10,7 +10,7 @@ def configure_logging() -> None:
     if _CONFIGURED:
         return
 
-    level_name = (LOG_LEVEL or "INFO").upper()
+    level_name = (get_settings().log_level or "INFO").upper()
     level = getattr(logging, level_name, logging.INFO)
 
     logging.basicConfig(

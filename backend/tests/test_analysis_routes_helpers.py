@@ -107,11 +107,12 @@ def test_validate_uploaded_jpeg_accepts_jpg_signature_extension_and_content_type
     _validate_uploaded_jpeg(file, b"\xff\xd8\xff\xe0valid-jpeg-like-content")
 
 
-def test_cancel_get_documents_forbidden_response():
+def test_cancel_get_requires_auth_and_documents_method_not_allowed_response():
     route = next(
         route
         for route in router.routes
         if route.path == "/{analysis_id}/cancel" and "GET" in route.methods
     )
 
-    assert route.responses[403]["description"] == "Forbidden"
+    assert route.responses[405]["description"] == "Method Not Allowed"
+    assert route.dependant.dependencies

@@ -1,4 +1,5 @@
 import { BackendService } from '@/src/services/BackendService';
+import { Logger } from '@/src/services/LoggerService';
 
 export interface AnalysisHistoryItem {
   id: string;
@@ -21,7 +22,7 @@ export class AnalysisService {
     try {
       return await BackendService.uploadImage(imageUri, locationStr, latitude, longitude, fcmToken, includeExplainability);
     } catch (error) {
-      console.error('Error uploading image to backend:', error);
+      Logger.error('Error uploading image to backend', error);
       throw error;
     }
   }
@@ -30,7 +31,7 @@ export class AnalysisService {
     try {
       return await BackendService.deleteAnalysis(analysisId);
     } catch (error) {
-      console.error('Error deleting analysis:', error);
+      Logger.error('Error deleting analysis', error);
       throw error;
     }
   }
@@ -39,7 +40,7 @@ export class AnalysisService {
     try {
       return await BackendService.cancelAnalysis(analysisId);
     } catch (error) {
-      console.error('Error cancelling analysis:', error);
+      Logger.error('Error cancelling analysis', error);
       throw error;
     }
   }
@@ -53,7 +54,7 @@ export class AnalysisService {
         const history = await BackendService.getAnalysisHistory();
         return history as AnalysisHistoryItem[];
       } catch (error) {
-        console.error('Error al obtener el historial de análisis:', error);
+        Logger.error('Error al obtener el historial de análisis', error);
         return [];
       }
     } else {

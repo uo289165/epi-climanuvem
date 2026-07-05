@@ -1,68 +1,27 @@
 import os
 import asyncio
 import logging
-import anyio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 from app.infrastructure.database.database import engine
+from app.infrastructure.database.bootstrap import bootstrap_database
 from app.infrastructure.logging_config import configure_logging
-from app.infrastructure.config import CORS_ALLOW_ORIGINS, DISABLE_WORKER
+from app.infrastructure.config import get_settings
 from app.presentation.routes import test_routes, analysis_routes
 from app.business.worker import analysis_worker
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
-def _cleanup_obsolete_analyses(conn):
-    cleanup_query = text("""
-        SELECT id, image_path 
-        FROM analysis 
-        WHERE is_anon = TRUE AND datetime < NOW() - INTERVAL '3 days'
-    """)
-    obsolete_analyses = conn.execute(cleanup_query).fetchall()
-    
-    if not obsolete_analyses:
-        return
-        
-    uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
-    
-    for row in obsolete_analyses:
-        if row.image_path:
-            filename = row.image_path.split("/")[-1]
-            file_path = os.path.join(uploads_dir, filename)
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except Exception as e:
-                    logger.exception("Error deleting obsolete file at %s: %s", file_path, e)
-                    
-        conn.execute(text("DELETE FROM analysis_cloud WHERE analysis_id = :id"), {"id": row.id})
-        conn.execute(text("DELETE FROM analysis WHERE id = :id"), {"id": row.id})
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB schema
-    with engine.begin() as conn:
-        create_tables_path = os.path.join(os.path.dirname(__file__), "infrastructure", "database", "create_tables.sql")
-        create_tables_sql = await anyio.Path(create_tables_path).read_text(encoding="utf-8")
-        conn.execute(text(create_tables_sql))
-        
-        # Check if clouds table is empty
-        result = conn.execute(text("SELECT COUNT(*) FROM clouds"))
-        count = result.scalar()
-        if count == 0:
-            seed_clouds_path = os.path.join(os.path.dirname(__file__), "infrastructure", "database", "seed_clouds.sql")
-            seed_clouds_sql = await anyio.Path(seed_clouds_path).read_text(encoding="utf-8")
-            conn.execute(text(seed_clouds_sql))
-            
-        # Cleanup obsolete anonymous analyses (older than 3 days)
-        _cleanup_obsolete_analyses(conn)
+    settings = get_settings()
+    bootstrap_database(engine)
                 
     worker_task = None
-    if DISABLE_WORKER:
+    if settings.disable_worker:
         logger.info("Analysis worker disabled by DISABLE_WORKER=true")
     else:
         worker_task = asyncio.create_task(analysis_worker())
@@ -83,13 +42,14 @@ app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ALLOW_ORIGINS,
+    allow_origins=get_settings().cors_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(test_routes.router)
+if get_settings().test_mode:
+    app.include_router(test_routes.router)
 app.include_router(analysis_routes.router, prefix="/analysis", tags=["Analysis"])
 
 @app.get("/ping")

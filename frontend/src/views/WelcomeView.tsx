@@ -4,12 +4,20 @@ import { useTheme } from '@/src/contexts/ThemeContext';
 import { getWelcomeViewStyles } from '@/src/styles/globalStyles';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/ui/AuthButton';
+import { StatusModal, ModalType } from '@/components/ui/StatusModal';
 import { useTranslation } from 'react-i18next';
 
 interface WelcomeViewProps {
   readonly controller: {
     readonly handleNavigateToLogin: () => void;
     readonly handleContinueAsGuest: () => void;
+    readonly modalVisible: boolean;
+    readonly modalConfig: {
+      readonly type: ModalType;
+      readonly title: string;
+      readonly message: string;
+    };
+    readonly hideModal: () => void;
   };
 }
 
@@ -17,6 +25,9 @@ export function WelcomeView({ controller }: WelcomeViewProps) {
   const { 
     handleNavigateToLogin, 
     handleContinueAsGuest,
+    modalVisible,
+    modalConfig,
+    hideModal,
   } = controller;
 
   const { t } = useTranslation();
@@ -54,6 +65,13 @@ export function WelcomeView({ controller }: WelcomeViewProps) {
           </View>
         </View>
       </View>
+      <StatusModal
+        visible={modalVisible}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={hideModal}
+      />
     </View>
   );
 }
