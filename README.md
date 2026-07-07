@@ -1,83 +1,168 @@
 # ClimaNuvem
 
-ClimaNuvem es una aplicacion movil para analizar fotografias de nubes. Permite tomar o seleccionar una imagen, enviarla al backend, clasificar los tipos de nubes detectados mediante un modelo multimodal servido con Ollama y consultar el historial de analisis desde la app.
+[![CI/CD](https://github.com/uo289165/epi-climanuvem/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/uo289165/epi-climanuvem/actions/workflows/ci-cd.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=uo289165_epi-climanuvem&metric=alert_status)](https://sonarcloud.io/summary/overall?id=uo289165_epi-climanuvem)
 
-## Funcionalidades
+ClimaNuvem is a mobile application for analyzing cloud photographs and generating a short-term local weather forecast based on the detected cloud types. Users can sign in or continue as guests, take a picture or select one from the gallery, send it to the backend, classify the clouds with a multimodal model served by Ollama, and review previous analyses from the mobile app.
 
-- Autenticacion con Firebase, incluyendo modo invitado.
-- Captura desde camara o seleccion desde galeria.
-- Subida de imagenes JPG de hasta 5 MB.
-- Registro opcional de ubicacion y coordenadas del analisis.
-- Analisis asincrono con cola en backend.
-- Clasificacion de tipos de nube y avisos asociados.
-- Explicabilidad opcional mediante cajas delimitadoras.
-- Historial de analisis por usuario.
-- Cancelacion de analisis en progreso.
-- Eliminacion de analisis individuales o de todos los datos del usuario.
-- Notificaciones push al finalizar o fallar un analisis.
-- Soporte de idioma espanol/ingles y tema claro/oscuro.
+The project combines an Expo/React Native app, a FastAPI backend, Firebase authentication, Firebase Cloud Messaging push notifications, PostgreSQL persistence, and asynchronous analysis processing.
 
-## Arquitectura
+## Contents
 
-El proyecto esta dividido en dos aplicaciones principales:
+- [What Is ClimaNuvem](#what-is-climanuvem)
+- [Application UI](#application-ui)
+- [Architecture](#architecture)
+- [Local Deployment](#local-deployment)
+- [APK Installation](#apk-installation)
+- [Tests And Quality](#tests-and-quality)
+- [CI/CD](#cicd)
+- [Contributing](#contributing)
+- [How To Cite](#how-to-cite)
 
-- `frontend/`: aplicacion Expo/React Native con Expo Router, Firebase Auth, camara, galeria, ubicacion, notificaciones e historial.
-- `backend/`: API FastAPI con PostgreSQL, Firebase Admin, cola asincrona de analisis y cliente Ollama.
+## What Is ClimaNuvem
 
-Flujo principal:
+ClimaNuvem is designed as a support tool for identifying clouds from a mobile device and relating them to possible near-term weather changes. Users can upload an image, attach location data, receive the result when the analysis finishes, and review past analyses from the history view.
 
-1. El usuario inicia sesion o entra como invitado.
-2. La app obtiene una imagen JPG desde camara o galeria.
-3. Opcionalmente se adjuntan ubicacion, token FCM y explicabilidad.
-4. El backend guarda la imagen y crea un registro `analysis` en estado `analyzing`.
-5. Un worker procesa la cola, llama a Ollama y persiste los resultados.
-6. La app consulta el historial y muestra resultados, avisos y cajas delimitadoras si existen.
+Main features:
 
-## Backend
+- Firebase authentication, including email, Google sign-in, and guest mode.
+- Camera capture or gallery image selection.
+- JPG image uploads up to 5 MB.
+- Optional location and coordinate registration for each analysis.
+- Asynchronous backend analysis through a job queue.
+- Cloud type classification with a local multimodal model served by Ollama.
+- Optional explainability through bounding boxes over the analyzed image.
+- Per-user analysis history.
+- Cancellation of analyses in progress.
+- Deletion of individual analyses and user data.
+- Push notifications when an analysis finishes or fails.
+- Spanish/English language support and light/dark/system theme modes.
 
-Tecnologias principales:
+## Application UI
 
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- Firebase Admin
-- Ollama
-- HTTPX
-- Uvicorn
+| Welcome | Sign In | Register | Home |
+| --- | --- | --- | --- |
+| <img src="images/ui-welcome.jpg" alt="ClimaNuvem welcome screen" width="180"> | <img src="images/ui-login.jpg" alt="Sign-in screen" width="180"> | <img src="images/ui-register.jpg" alt="Account creation screen" width="180"> | <img src="images/ui-home.jpg" alt="Home screen with quick actions" width="180"> |
 
-Endpoints principales:
+| Profile And Settings | Image Upload | History | Results |
+| --- | --- | --- | --- |
+| <img src="images/ui-profile-settings.jpg" alt="Profile, theme, language, and account deletion screen" width="180"> | <img src="images/ui-analysis-upload.jpg" alt="Screen to take a photo, select from gallery, and enable explainability" width="180"> | <img src="images/ui-history.jpg" alt="Previous analysis history" width="180"> | <img src="images/ui-analysis-results.jpg" alt="Analysis detail with detected cloud types" width="180"> |
 
-- `GET /ping`: comprobacion basica de disponibilidad.
-- `GET /`: estado del servicio.
-- `POST /analysis/upload`: subida de imagen JPG para analisis.
-- `GET /analysis/history`: historial del usuario autenticado.
-- `DELETE /analysis/{analysis_id}`: elimina un analisis concreto.
-- `PATCH /analysis/{analysis_id}/cancel`: cancela un analisis en curso.
-- `DELETE /analysis/user-data`: elimina los analisis y archivos asociados al usuario.
-- `/uploads/...`: servicio estatico para imagenes subidas.
+## Architecture
 
-Variables de entorno relevantes:
+The project is split into two main applications:
+
+- `frontend/`: Expo/React Native app with Expo Router, Firebase Auth, camera, gallery, location, notifications, and analysis history.
+- `backend/`: FastAPI API with PostgreSQL, Firebase Admin, asynchronous analysis queue, and Ollama client.
+
+### General View
+
+![General architecture diagram](images/architecture-general.png)
+
+Main flow:
+
+1. The user signs in or enters as a guest.
+2. The app obtains a JPG image from the camera or gallery.
+3. Location, FCM token, and explainability settings are optionally attached.
+4. The backend verifies the Firebase token, stores the image, and creates an analysis in `analyzing` state.
+5. A worker processes the queue, calls Ollama, and persists the results in PostgreSQL.
+6. The backend sends a push notification if an FCM token is available.
+7. The app queries the history and displays results, warnings, and bounding boxes when available.
+
+### Frontend Architecture
+
+![Frontend architecture diagram](images/architecture-frontend.png)
+
+The frontend separates views, controllers, and services. Views render the interface and emit screen events, controllers coordinate state and navigation, and services encapsulate communication with Firebase, the backend API, notifications, and local preference storage.
+
+### Backend Architecture
+
+![Backend architecture diagram](images/architecture-backend.png)
+
+The backend organizes the code into presentation, business, data, and infrastructure layers. The presentation layer exposes HTTP endpoints, the business layer executes analysis use cases, the data layer persists results, and the infrastructure layer integrates Firebase, PostgreSQL, Ollama, and the asynchronous queue.
+
+## Local Deployment
+
+Local deployment requires configuring the backend and frontend separately. Docker Compose is the recommended backend option because it starts PostgreSQL, Ollama, and the API with a consistent setup.
+
+### Requirements
+
+- Python 3.10 for running the backend manually.
+- Docker and Docker Compose for running the backend, PostgreSQL, and Ollama in containers.
+- Node.js 22 and npm for the frontend.
+- Android Studio if you want to run the native app with `npm run android`.
+- A Firebase project with Authentication enabled and a Firebase Admin service account.
+- A Firebase `google-services.json` file for Android.
+
+### Backend With Docker Compose
+
+Create a `backend/.env` file with the variables used by `backend/docker-compose.yml`:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/climanuvem
+POSTGRES_USER=climanuvem
+POSTGRES_PASSWORD=climanuvem
+POSTGRES_DB=climanuvem
+OLLAMA_MODEL=gemma4:e4b
+```
+
+Variable reference:
+
+- `POSTGRES_USER`: user that the PostgreSQL container creates when initializing the database.
+- `POSTGRES_PASSWORD`: password for the PostgreSQL user.
+- `POSTGRES_DB`: database name used by ClimaNuvem.
+- `OLLAMA_MODEL`: model downloaded by the `ollama-pull` service and used by the backend to analyze images.
+
+Download the private credentials JSON from Firebase Admin SDK and place it at:
+
+```text
+backend/secrets/firebase_key.json
+```
+
+This file must not be committed to the repository.
+
+Start the services:
+
+```bash
+cd backend
+docker compose up --build
+```
+
+Docker Compose starts:
+
+- PostgreSQL 15.
+- Ollama.
+- A helper service that downloads the model configured in `OLLAMA_MODEL`.
+- The FastAPI backend at `http://localhost:8000`.
+
+### Manual Backend Setup
+
+If you do not use Docker for the backend, PostgreSQL and Ollama must be running separately. Create a `backend/.env` file with:
+
+```env
+DATABASE_URL=postgresql://climanuvem:climanuvem@localhost:5432/climanuvem
 FIREBASE_KEY_PATH=secrets/firebase_key.json
 FIREBASE_CLOCK_SKEW_SECONDS=5
 OLLAMA_URL=http://localhost:11434/api/generate
+OLLAMA_MODEL=gemma4:e4b
 CORS_ALLOW_ORIGINS=http://localhost:8081,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006
 LOG_LEVEL=INFO
 TEST_MODE=false
 DISABLE_WORKER=false
 ```
 
-Notas:
+Variable reference:
 
-- `CORS_ALLOW_ORIGINS` debe contener origenes explicitos separados por comas. No se usa wildcard con credenciales.
-- `FIREBASE_KEY_PATH` debe apuntar a un fichero de credenciales fuera del control de versiones.
-- `FIREBASE_CLOCK_SKEW_SECONDS` define el margen en segundos para tolerar pequenos desfases de reloj al verificar tokens Firebase. Valor recomendado: `5`.
-- `TEST_MODE=true` permite usar autenticacion simulada en pruebas.
-- `DISABLE_WORKER=true` desactiva el worker asincrono.
+- `DATABASE_URL`: connection string used by SQLAlchemy to access PostgreSQL.
+- `FIREBASE_KEY_PATH`: path to the private Firebase Admin credentials JSON, relative to the `backend/` directory.
+- `FIREBASE_CLOCK_SKEW_SECONDS`: tolerance window, in seconds, for small clock skews when validating Firebase tokens.
+- `OLLAMA_URL`: Ollama HTTP endpoint used by the backend to request analysis generation.
+- `OLLAMA_MODEL`: specific model invoked by the Ollama client.
+- `CORS_ALLOW_ORIGINS`: comma-separated list of origins allowed to call the backend during development.
+- `LOG_LEVEL`: backend log verbosity, for example `DEBUG`, `INFO`, `WARNING`, or `ERROR`.
+- `TEST_MODE`: when set to `true`, enables mocked authentication for tests; it should be `false` for normal development.
+- `DISABLE_WORKER`: when set to `true`, prevents the asynchronous analysis worker from starting; it should be `false` for normal use.
 
-Ejecucion local del backend:
+Install dependencies and start the API:
 
 ```bash
 cd backend
@@ -87,85 +172,115 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Docker Backend
+On startup, the backend creates the required tables if they do not exist and initializes the cloud catalog when it is empty.
 
-El fichero `backend/docker-compose.yml` levanta:
+### Frontend
 
-- PostgreSQL 15
-- Ollama
-- Backend FastAPI en el puerto `8000`
-
-Ejemplo:
-
-```bash
-cd backend
-docker compose up --build
-```
-
-El servicio espera las variables de PostgreSQL (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) y monta:
-
-- `backend_uploads` para imagenes subidas persistentes.
-- `./secrets` para credenciales privadas en modo solo lectura.
-
-## Frontend
-
-Tecnologias principales:
-
-- Expo
-- React Native
-- Expo Router
-- Firebase
-- i18next
-- Expo Camera, Image Picker, Location y Notifications
-
-Variables de entorno relevantes:
+Create `frontend/.env` with the public variables that Expo injects into the app:
 
 ```env
 EXPO_PUBLIC_BACKEND_URL=http://localhost:8000
 EXPO_PUBLIC_TEST_MODE=false
+EXPO_PUBLIC_DEFAULT_LANGUAGE=es
+EXPO_PUBLIC_FIREBASE_API_KEY=...
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=...
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+EXPO_PUBLIC_FIREBASE_APP_ID=...
+EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=...
 ```
 
-Comandos habituales:
+Variable reference:
+
+- `EXPO_PUBLIC_BACKEND_URL`: base URL of the FastAPI backend called by the app.
+- `EXPO_PUBLIC_TEST_MODE`: enables frontend test behavior when set to `true`.
+- `EXPO_PUBLIC_DEFAULT_LANGUAGE`: preferred initial language; expected values are `es` or `en`.
+- `EXPO_PUBLIC_FIREBASE_API_KEY`: public Firebase project key used by the client SDK.
+- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`: authentication domain associated with the Firebase project.
+- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`: Firebase project identifier.
+- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`: storage bucket associated with the Firebase project.
+- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`: sender identifier used by Firebase Cloud Messaging.
+- `EXPO_PUBLIC_FIREBASE_APP_ID`: identifier of the app registered in Firebase.
+- `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`: Firebase/Analytics measurement identifier, if configured.
+
+Download `google-services.json` from the Android app settings in Firebase and place it at:
+
+```text
+frontend/google-services.json
+```
+
+This file must not be committed either.
+
+Install dependencies and start Expo:
 
 ```bash
 cd frontend
 npm install
 npm start
-npm run android
-npm run ios
-npm run web
 ```
 
-Para probar en un movil fisico, `EXPO_PUBLIC_BACKEND_URL` debe apuntar a una direccion accesible desde el dispositivo, no necesariamente a `localhost`.
+Common commands:
 
-## Base De Datos
+```bash
+npm run android
+npm run web
+npm test
+npm run lint
+```
 
-El backend crea las tablas necesarias al arrancar si no existen:
+If you test on a physical phone, `EXPO_PUBLIC_BACKEND_URL` must not point to `localhost`, because `localhost` would refer to the phone itself. Use the local IP address of the machine running the backend, for example:
 
-- `analysis`: metadatos de cada analisis, usuario, imagen, ubicacion y estado.
-- `clouds`: catalogo de tipos de nube, prevision y avisos.
-- `analysis_cloud`: relacion entre analisis y tipos detectados, incluyendo confianza y cajas delimitadoras.
+```env
+EXPO_PUBLIC_BACKEND_URL=http://192.168.1.50:8000
+```
 
-Tambien inicializa el catalogo de nubes cuando la tabla esta vacia.
+For Android release builds, the app is configured with `usesCleartextTraffic=false`. Therefore, the published APK must communicate with an available HTTPS backend.
 
-## Seguridad Y Configuracion
+## APK Installation
 
-- No subir credenciales Firebase, claves privadas ni ficheros `.env`.
-- No subir `frontend/google-services.json` ni keystores Android. Estos ficheros se restauran en GitHub Actions desde secrets.
-- Mantener CORS limitado a origenes conocidos.
-- El backend valida que las imagenes sean JPG, no esten vacias y no superen 5 MB.
-- Los analisis anonimos antiguos se limpian automaticamente a partir de la politica implementada en el arranque del backend.
+The repository publishes signed APKs in GitHub Releases when the CI/CD workflow creates a release.
 
-## CI/CD En GitHub Actions
+To install the app:
 
-El workflow `.github/workflows/ci-cd.yml` ejecuta validaciones por rutas:
+1. Open the releases page: [github.com/uo289165/epi-climanuvem/releases](https://github.com/uo289165/epi-climanuvem/releases).
+2. In the latest release, download the `climanuvem-<run_number>.apk` asset.
+3. Open the APK from the Android device.
+4. If Android asks for permission, allow installation from unknown sources for the app used to open the file.
+5. Install and open ClimaNuvem.
 
-- Cambios en `backend/`: instala dependencias Python y ejecuta `pytest`.
-- Cambios en `frontend/`: instala dependencias Node, ejecuta `npm run lint` y `npm test`.
-- Cambios en `frontend/` sobre `main`: si los tests pasan, compila un APK Android release firmado y lo adjunta a una nueva GitHub Release.
-- Cambios solo en `backend/` no generan APK ni release.
+The APK uses the backend URL defined in `EXPO_PUBLIC_BACKEND_URL` during the CI build. For the app to work outside the local environment, that URL must point to an HTTPS backend reachable from the device.
 
-Secrets necesarios en GitHub:
+## Tests And Quality
+
+Backend:
+
+```bash
+cd backend
+pip install -r requirements.txt -r requirements-dev.txt
+pytest
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+npm run lint
+```
+
+The badges at the top of this README show the GitHub Actions workflow status and the SonarCloud Quality Gate.
+
+## CI/CD
+
+The `.github/workflows/ci-cd.yml` workflow runs checks by changed path:
+
+- Changes in `backend/`: install Python dependencies and run `pytest`.
+- Changes in `frontend/`: install Node dependencies, run `npm run lint`, and run `npm test`.
+- Changes in `frontend/` on `main`: if tests pass, build a signed Android release APK and attach it to a new GitHub Release.
+- Manual execution: the workflow can build Android manually through `workflow_dispatch` with `build_android=true`.
+
+Secrets required to build the APK in GitHub Actions:
 
 ```text
 ANDROID_KEYSTORE_BASE64
@@ -183,21 +298,37 @@ EXPO_PUBLIC_FIREBASE_APP_ID
 EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 ```
 
-Las variables `EXPO_PUBLIC_*` tambien deben guardarse como secrets para que el APK de release quede compilado con la URL HTTPS del backend y la configuracion Firebase correcta. `EXPO_PUBLIC_BACKEND_URL` debe ser una URL `https://...`; Android release no permite trafico HTTP en claro.
+Secret reference:
 
-## Tests
+- `ANDROID_KEYSTORE_BASE64`: Android keystore encoded in Base64 for signing the APK.
+- `ANDROID_KEYSTORE_PASSWORD`: keystore password.
+- `ANDROID_KEY_ALIAS`: alias of the signing key inside the keystore.
+- `ANDROID_KEY_PASSWORD`: signing key password.
+- `GOOGLE_SERVICES_JSON_BASE64`: contents of `google-services.json` encoded in Base64.
+- `EXPO_PUBLIC_BACKEND_URL`: HTTPS backend URL embedded into the APK.
+- `EXPO_PUBLIC_FIREBASE_API_KEY`: public Firebase project key for the client SDK.
+- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`: Firebase authentication domain.
+- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`: Firebase project identifier.
+- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`: Firebase project storage bucket.
+- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`: Firebase Cloud Messaging sender identifier.
+- `EXPO_PUBLIC_FIREBASE_APP_ID`: identifier of the app registered in Firebase.
+- `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`: Firebase/Analytics measurement identifier.
 
-Backend:
+## Contributing
 
-```bash
-cd backend
-pytest
-```
+To contribute to the project:
 
-Frontend:
+- Open an issue or create a branch with a descriptive name before starting a relevant change.
+- Keep changes focused and document in the pull request which problem they solve.
+- Run the checks that apply to the modified area: `pytest` for backend, `npm test` and `npm run lint` for frontend.
+- Do not commit credentials, `.env` files, Firebase keys, Android keystores, or private local files.
+- Update the documentation when commands, environment variables, architecture, or user-visible flows change.
+- Explain in the pull request how the change was verified, and attach screenshots when the UI is affected.
 
-```bash
-cd frontend
-npm test
-npm run lint
-```
+## How To Cite
+
+If you use this software, please cite the project as:
+
+Uria Navarro, F., Augusto, C., Gallego Becerra, M. Á., & Pérez Vellarino, T. (2026). ClimaNuvem (Version 1.0.0) [Computer software]. https://github.com/uo289165/epi-climanuvem
+
+You can also check the formal citation metadata in `CITATION.cff`.
