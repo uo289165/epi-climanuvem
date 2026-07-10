@@ -10,6 +10,7 @@ The project combines an Expo/React Native app, a FastAPI backend, Firebase authe
 ## Contents
 
 - [What Is ClimaNuvem](#what-is-climanuvem)
+- [User Requirements](#user-requirements)
 - [Application UI](#application-ui)
 - [Architecture](#architecture)
 - [Local Deployment](#local-deployment)
@@ -37,6 +38,15 @@ Main features:
 - Deletion of individual analyses and user data.
 - Push notifications when an analysis finishes or fails.
 - Spanish/English language support and light/dark/system theme modes.
+
+## User Requirements
+
+The formal user requirements for ClimaNuvem are documented in the `docs/` directory in both supported languages:
+
+- [`docs/userrequirements_en.txt`](docs/userrequirements_en.txt): English version.
+- [`docs/userrequirements_es.txt`](docs/userrequirements_es.txt): Spanish version.
+
+These documents describe the expected user-facing behavior of the application, including authentication, registration, image upload, cloud analysis, weather forecasting, risk warnings, analysis cancellation, history access, and explainability results.
 
 ## Application UI
 
