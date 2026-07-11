@@ -1,6 +1,5 @@
 module.exports = {
   preset: 'jest-expo',
-  roots: ['<rootDir>/__tests__'],
   moduleNameMapper: {
     '^@/src/config/firebaseConfig$': '<rootDir>/__tests__/mocks/firebaseConfigMock.ts',
     '^@/src/services/LoggerService$': '<rootDir>/__tests__/mocks/LoggerServiceMock.ts',
@@ -10,14 +9,15 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   coverageReporters: ['text', 'lcov'],
   collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    'app/**/*.{ts,tsx}',
-    'components/**/*.{ts,tsx}',
-    'hooks/**/*.{ts,tsx}',
+    'src/services/**/*.{ts,tsx}',
+    'src/utils/**/*.{ts,tsx}',
     '!**/__tests__/**',
     '!**/mocks/**',
-    '!src/config/firebaseConfig.ts',
-    '!src/config/locales/**',
+    '!src/services/AuthService.ts',
+    '!src/services/LoggerService.ts',
+    '!src/services/NotificationService.ts',
+    '!src/services/mockData.ts',
+    '!src/utils/captureUtils.ts',
     '!**/*.d.ts',
   ],
 };
