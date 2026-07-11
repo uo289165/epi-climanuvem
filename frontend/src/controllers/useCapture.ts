@@ -40,7 +40,7 @@ export const useCapture = () => {
     }
 
     const pickerOptions = {
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'] as ImagePicker.MediaType[],
       allowsEditing: false,
       quality: 1,
     };

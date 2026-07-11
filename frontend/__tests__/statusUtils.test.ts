@@ -38,4 +38,8 @@ describe('statusUtils', () => {
     expect(formatDate('2026-07-05T17:45:00.000Z', 'es')).toContain('05/07/2026');
     expect(formatDate('2026-07-05T17:45:00.000Z', 'en')).toContain('07/05/2026');
   });
+
+  it('formats invalid dates using the platform fallback', () => {
+    expect(formatDate('not-a-date', 'en')).toBe('Invalid Date');
+  });
 });

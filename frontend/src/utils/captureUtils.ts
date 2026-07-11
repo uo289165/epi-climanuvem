@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import * as Location from 'expo-location';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Logger } from '@/src/services/LoggerService';
 import { NotificationService } from '@/src/services/NotificationService';
 
@@ -76,13 +76,10 @@ export const getFCMToken = async () => {
 
 export const optimizeImage = async (uri: string) => {
   try {
-    // @ts-ignore - Using deprecated API because the new contextual API causes a native crash in the current Expo SDK version
-    const manipResult = await manipulateAsync(
-      uri,
-      [],
-      { compress: 0.9, format: SaveFormat.JPEG },
-    );
-    return manipResult.uri;
+    const context = ImageManipulator.manipulate(uri);
+    const image = await context.renderAsync();
+    const result = await image.saveAsync({ compress: 0.9, format: SaveFormat.JPEG });
+    return result.uri;
   } catch (error) {
     Logger.warn('Error manipulando imagen (EXIF)', error);
     return uri;
