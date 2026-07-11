@@ -21,3 +21,5 @@ firebase_key.json
 secrets/
 .env
 uploads/
+.coverage
+coverage.xml

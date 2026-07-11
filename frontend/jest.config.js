@@ -8,4 +8,16 @@ module.exports = {
   },
   testMatch: ['**/__tests__/**/*.(test|spec).(ts|tsx|js)'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  coverageReporters: ['text', 'lcov'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    'app/**/*.{ts,tsx}',
+    'components/**/*.{ts,tsx}',
+    'hooks/**/*.{ts,tsx}',
+    '!**/__tests__/**',
+    '!**/mocks/**',
+    '!src/config/firebaseConfig.ts',
+    '!src/config/locales/**',
+    '!**/*.d.ts',
+  ],
 };
